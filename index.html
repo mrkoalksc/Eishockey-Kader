@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DEL2 Reihen-Builder</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2430;--mut:#667;--line:#d5dbe3;--acc:#0b5ed7;--ok:#1a8f4c;--bad:#c62828;--imp:#e08a00}
+@media(prefers-color-scheme:dark){:root{--bg:#10151c;--card:#1a212b;--ink:#e8edf3;--mut:#9aa6b4;--line:#2d3745;--acc:#5b9cff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0}select,button,input,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+button{cursor:pointer}button:hover{border-color:var(--acc)}
+main{display:grid;grid-template-columns:minmax(260px,330px) 1fr;gap:16px;padding:16px}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pill{padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card)}.pill.ok{border-color:var(--ok);color:var(--ok)}.pill.bad{border-color:var(--bad);color:var(--bad)}
+.player{display:flex;gap:6px;align-items:center;padding:5px 8px;margin:3px 0;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:grab;user-select:none}
+.player.dragging{opacity:.4}.player .pos{font-weight:700;width:18px;color:var(--acc)}.player .meta{margin-left:auto;color:var(--mut);font-size:12px;white-space:nowrap}
+.tag{font-size:11px;padding:0 5px;border-radius:4px;border:1px solid var(--line)}.tag.imp{color:var(--imp);border-color:var(--imp)}.tag.u21{color:var(--ok);border-color:var(--ok)}
+#pool{max-height:65vh;overflow:auto;min-height:60px}
+.lines{display:grid;gap:10px}.row{display:grid;gap:8px;grid-template-columns:70px repeat(3,1fr);align-items:stretch}
+.row.d{grid-template-columns:70px repeat(2,1fr)}.row.g{grid-template-columns:70px repeat(2,1fr)}.row.u{grid-template-columns:70px repeat(2,1fr)}
+.lbl{font-weight:600;align-self:center;color:var(--mut)}
+.slot{min-height:42px;border:2px dashed var(--line);border-radius:8px;padding:3px;display:flex;flex-direction:column;justify-content:center}
+.slot small{color:var(--mut);font-size:10px;text-transform:uppercase}.slot .player{margin:2px 0}
+.slot.over.okdrop{border-color:var(--ok);background:rgba(26,143,76,.12)}.slot.over.nodrop{border-color:var(--bad);background:rgba(198,40,40,.12)}
+.slot.u21{border-color:var(--ok)}
+.x{border:0;background:none;color:var(--bad);padding:0 4px}
+#msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bad);color:#fff;padding:8px 14px;border-radius:8px;display:none;max-width:90vw;z-index:9}
+details{margin-top:10px}textarea{width:100%;height:110px}
+.rules{color:var(--mut);font-size:12px;margin:8px 0 0}
+@media print{header,#side{display:none}main{display:block}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏒 DEL2 Reihen-Builder</h1>
+  <label>Team: <select id="team"></select></label>
+  <button id="addTeam">+ Team</button>
+  <button id="clear">Aufstellung leeren</button>
+  <button id="auto">Auto-Vorschlag</button>
+  <button onclick="print()">Drucken</button>
+  <span id="season" style="color:var(--mut)"></span>
+</header>
+<main>
+  <section class="card" id="side">
+    <h2>Kader (<span id="poolCount">0</span>)</h2>
+    <div id="pool"></div>
+    <details><summary>Spieler hinzufügen / importieren</summary>
+      <p class="rules">Eine Zeile pro Spieler: <code>Name;Pos;Geburtsjahr;Nation;Nr</code> (Pos: G, D, F/C/LW/RW; Nation z.B. GER, CAN). Tabelle von Eliteprospects lässt sich dafür kopieren.</p>
+      <textarea id="csv" placeholder="Max Mustermann;F;2004;GER;19"></textarea>
+      <button id="imp">Zum Kader hinzufügen</button> <button id="repl">Kader ersetzen</button> <button id="exp">Export (CSV)</button>
+    </details>
+  </section>
+  <section>
+    <div class="stats" id="stats"></div>
+    <div class="card lines" id="lines"></div>
+    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · Plätze 18 und 19 nur für deutsche U21-Spieler · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht. U21 = Geburtsjahr ≥ <span id="u21y"></span>. Nationalität „GER“ gilt als deutsch.</p>
+  </section>
+</main>
+<div id="msg"></div>
+<script src="data/del2.js"></script>
+<script>
+const D = window.DEL2_DATA, U21_MIN = D.seasonStartYear - 20, MAX_IMPORT = 4;
+const $ = s => document.querySelector(s);
+const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let customTeams = store.get('del2.teams', []);
+let teams = () => [...D.teams, ...customTeams];
+let teamId = store.get('del2.team', D.teams[0].id);
+let roster = [], lineup = {};
+
+// Slots: 17 reguläre Plätze + Plätze 18/19 (nur deutsche U21)
+const SLOTS = [];
+const rows = [];
+['G1','G2'].forEach((id,i)=>SLOTS.push({id,kind:'G',label:i?'Ersatz-TW':'Start-TW'}));
+rows.push({cls:'g',label:'Torhüter',ids:['G1','G2']});
+for(let l=1;l<=4;l++){const ids=['LW','C','RW'].map(p=>`F${l}${p}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LW','C','RW'][i]}));rows.push({cls:'f',label:`Reihe ${l}`,ids});}
+for(let p=1;p<=2;p++){const ids=['LD','RD'].map(x=>`D${p}${x}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LD','RD'][i]}));rows.push({cls:'d',label:`Paar ${p}`,ids});}
+SLOTS.push({id:'D3LD',kind:'S',label:'LD (Paar 3)'});
+SLOTS.push({id:'U18',kind:'U',label:'Platz 18 · U21 DE'},{id:'U19',kind:'U',label:'Platz 19 · U21 DE'});
+rows.push({cls:'u',label:'Pl. 3 / 18–19',ids:['D3LD','U18','U19']});
+rows[rows.length-1].cls='f';
+const slotById = Object.fromEntries(SLOTS.map(s=>[s.id,s]));
+
+const isGer = p => /^(GER|DE|DEU)$/i.test(p.nat);
+const isU21 = p => p.birth && p.birth >= U21_MIN;
+const normPos = s => { s=(s||'').toUpperCase(); return s.startsWith('G')?'G':/^(D|LD|RD)/.test(s)?'D':'F'; };
+const byId = id => roster.find(p=>p.id===id);
+
+function load(){
+  const t = teams().find(t=>t.id===teamId) || teams()[0]; teamId=t.id;
+  const base = (t.players||[]).map((a,i)=>Array.isArray(a)?{id:`b${i}`,name:a[0],pos:a[1],birth:a[2],nat:a[3],num:a[4]}:a);
+  const mine = store.get('del2.roster.'+teamId, null);
+  roster = mine || base; lineup = store.get('del2.lineup.'+teamId, {});
+  roster.forEach((p,i)=>{p.id=p.id||'p'+i+Date.now(); p.pos=normPos(p.pos);});
+  Object.keys(lineup).forEach(k=>{if(!byId(lineup[k])||!slotById[k])delete lineup[k]});
+}
+function save(){store.set('del2.roster.'+teamId,roster);store.set('del2.lineup.'+teamId,lineup);store.set('del2.team',teamId)}
+
+function toast(t){const m=$('#msg');m.textContent=t;m.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>m.style.display='none',3200)}
+
+// Prüft, ob Spieler in Slot darf. Gibt Fehlertext oder null zurück.
+function check(p, slotId){
+  const s = slotById[slotId];
+  if(s.kind==='G' && p.pos!=='G') return 'Nur Torhüter auf Torhüter-Plätzen.';
+  if(s.kind!=='G' && p.pos==='G') return 'Torhüter nur auf Torhüter-Plätzen.';
+  if(s.kind==='U' && !(isGer(p)&&isU21(p))) return `Plätze 18/19 sind nur für deutsche U21-Spieler (Jg. ≥ ${U21_MIN}).`;
+  const others = Object.entries(lineup).filter(([k,id])=>id!==p.id && k!==slotId).map(([,id])=>byId(id));
+  if(!isGer(p) && others.filter(o=>!isGer(o)).length>=MAX_IMPORT) return 'Maximal 4 Importspieler im Spielbericht.';
+  return null;
+}
+function place(pid, slotId){
+  const p=byId(pid), err=check(p,slotId); if(err) return toast(err);
+  for(const k in lineup) if(lineup[k]===pid) delete lineup[k];
+  lineup[slotId]=pid; save(); render();
+}
+function unplace(pid){for(const k in lineup) if(lineup[k]===pid) delete lineup[k]; save(); render();}
+
+function playerEl(p, removable){
+  const e=document.createElement('div'); e.className='player'; e.draggable=true; e.dataset.id=p.id;
+  const imp=!isGer(p);
+  e.innerHTML=`<span class="pos">${p.pos}</span><span>${p.num?'#'+p.num+' ':''}${esc(p.name)}</span>
+   <span class="meta">${imp?'<span class="tag imp">Import</span> ':''}${isGer(p)&&isU21(p)?'<span class="tag u21">U21</span> ':''}${esc(p.nat||'')} ${p.birth||''}</span>${removable?'<button class="x" title="Entfernen">✕</button>':''}`;
+  e.addEventListener('dragstart',ev=>{ev.dataTransfer.setData('text/plain',p.id);e.classList.add('dragging');drag=p.id;});
+  e.addEventListener('dragend',()=>{e.classList.remove('dragging');drag=null;document.querySelectorAll('.over').forEach(x=>x.classList.remove('over','okdrop','nodrop'))});
+  if(removable) e.querySelector('.x').onclick=ev=>{ev.stopPropagation();unplace(p.id)};
+  return e;
+}
+let drag=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function render(){
+  $('#season').textContent='Saison '+D.season; $('#u21y').textContent=U21_MIN;
+  // Pool
+  const pool=$('#pool'); pool.innerHTML='';
+  const placed=new Set(Object.values(lineup));
+  const order={G:0,D:1,F:2};
+  const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>order[a.pos]-order[b.pos]||a.name.localeCompare(b.name));
+  free.forEach(p=>{const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save();render()}};e.appendChild(x);pool.appendChild(e)});
+  $('#poolCount').textContent=roster.length;
+  pool.ondragover=e=>e.preventDefault(); pool.ondrop=e=>{e.preventDefault();if(drag)unplace(drag)};
+  // Lines
+  const L=$('#lines'); L.innerHTML='';
+  rows.forEach(r=>{
+    const row=document.createElement('div'); row.className='row '+r.cls; row.innerHTML=`<div class="lbl">${r.label}</div>`;
+    r.ids.forEach(id=>row.appendChild(slotEl(id)));
+    L.appendChild(row);
+  });
+  stats();
+}
+function slotEl(id){
+  const s=slotById[id], el=document.createElement('div'); el.className='slot'+(s.kind==='U'?' u21':'');
+  el.innerHTML=`<small>${s.label}</small>`;
+  if(lineup[id]) el.appendChild(playerEl(byId(lineup[id]),true));
+  el.ondragover=e=>{e.preventDefault();const p=byId(drag);if(!p)return;el.classList.add('over',check(p,id)?'nodrop':'okdrop')};
+  el.ondragleave=()=>el.classList.remove('over','okdrop','nodrop');
+  el.ondrop=e=>{e.preventDefault();el.classList.remove('over','okdrop','nodrop');const pid=e.dataTransfer.getData('text/plain');if(pid)place(pid,id)};
+  return el;
+}
+function stats(){
+  const ps=Object.values(lineup).map(byId), g=ps.filter(p=>p.pos==='G').length, sk=ps.length-g, imp=ps.filter(p=>!isGer(p)).length;
+  const u=['U18','U19'].filter(k=>lineup[k]).length;
+  const pill=(t,ok)=>`<span class="pill ${ok?'ok':'bad'}">${t}</span>`;
+  $('#stats').innerHTML=pill(`Torhüter ${g}/2`,g<=2&&g==2)+pill(`Feldspieler ${sk}/19`,sk==19)+pill(`Importspieler ${imp}/${MAX_IMPORT}`,imp<=MAX_IMPORT)+pill(`U21-Plätze 18/19: ${u}/2`,u==2);
+}
+
+// Events
+function fillTeams(){const s=$('#team');s.innerHTML=teams().map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');s.value=teamId}
+$('#team').onchange=e=>{teamId=e.target.value;load();save();render()};
+$('#addTeam').onclick=()=>{const n=prompt('Name des Teams:');if(!n)return;const t={id:'c'+Date.now(),name:n,players:[]};customTeams.push(t);store.set('del2.teams',customTeams);teamId=t.id;fillTeams();load();save();render()};
+$('#clear').onclick=()=>{lineup={};save();render()};
+function parseCsv(t){return t.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const c=l.split(/[;\t,]/).map(x=>x.trim());return{id:'i'+Math.random().toString(36).slice(2),name:c[0],pos:normPos(c[1]),birth:+c[2]||null,nat:(c[3]||'GER').toUpperCase(),num:c[4]||''}}).filter(p=>p.name)}
+$('#imp').onclick=()=>{roster.push(...parseCsv($('#csv').value));$('#csv').value='';save();render()};
+$('#repl').onclick=()=>{if(!confirm('Kader und Aufstellung ersetzen?'))return;roster=parseCsv($('#csv').value);lineup={};$('#csv').value='';save();render()};
+$('#exp').onclick=()=>{$('#csv').value=roster.map(p=>[p.name,p.pos,p.birth||'',p.nat,p.num||''].join(';')).join('\n')};
+$('#auto').onclick=()=>{ // einfacher Vorschlag unter Beachtung der Regeln
+  lineup={}; const rank=roster.slice();
+  const put=(slot,list)=>{for(const p of list){if(Object.values(lineup).includes(p.id))continue;if(!check(p,slot)){lineup[slot]=p.id;return}}};
+  const G=rank.filter(p=>p.pos==='G'),Dd=rank.filter(p=>p.pos==='D'),F=rank.filter(p=>p.pos==='F');
+  const ger=p=>isGer(p)&&isU21(p);
+  ['U18','U19'].forEach(s=>put(s,[...F,...Dd].filter(ger).sort((a,b)=>a.birth-b.birth)));
+  put('G1',G);put('G2',G);
+  SLOTS.filter(s=>/^F/.test(s.id)).forEach(s=>put(s.id,F));
+  SLOTS.filter(s=>/^D/.test(s.id)).forEach(s=>put(s.id,Dd));
+  save();render();
+};
+fillTeams();load();render();
+</script>
+</body>
+</html>
