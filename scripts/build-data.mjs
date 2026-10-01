@@ -1,7 +1,7 @@
 // Erzeugt data/del2.js aus data/del2_spieler_2026-27.csv  (node scripts/build-data.mjs)
 import fs from 'fs';
 const CLUBS = {
-  BDW:'Blue Devils Weiden', DEG:'Deggendorfer SC', DRE:'Dresdner Eislöwen', EBR:'Eisbären Regensburg',
+  BDW:'Blue Devils Weiden', DEG:'Düsseldorfer EG', DRE:'Dresdner Eislöwen', EBR:'Eisbären Regensburg',
   ECK:'EC Kassel Huskies', ECN:'EC Bad Nauheim', EPC:'Eispiraten Crimmitschau', EVL:'EV Landshut',
   FRB:'EHC Freiburg', LFX:'Lausitzer Füchse', MEM:'Memmingen Indians', RVT:'Ravensburg Towerstars',
   SBR:'Starbulls Rosenheim', SCB:'Bietigheim Steelers'
