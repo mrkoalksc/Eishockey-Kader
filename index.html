@@ -20,6 +20,7 @@ h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;c
 .player{display:flex;gap:6px;align-items:center;padding:5px 8px;margin:3px 0;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:grab;user-select:none}
 .player.dragging{opacity:.4}.player .pos{font-weight:700;width:18px;color:var(--acc)}.player .meta{margin-left:auto;color:var(--mut);font-size:12px;white-space:nowrap}
 .tag{font-size:11px;padding:0 5px;border-radius:4px;border:1px solid var(--line)}.tag.imp{color:var(--imp);border-color:var(--imp)}.tag.u21{color:var(--ok);border-color:var(--ok)}
+#pool .grp{margin:12px 0 4px;padding:4px 0;border-bottom:2px solid var(--acc);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--acc);position:sticky;top:0;background:var(--card);z-index:1}#pool .grp:first-child{margin-top:0}
 #pool{max-height:65vh;overflow:auto;min-height:60px}
 .lines{display:grid;gap:10px}.row{display:grid;gap:8px;grid-template-columns:70px repeat(3,1fr);align-items:stretch}
 .row.d{grid-template-columns:70px repeat(2,1fr)}.row.g{grid-template-columns:70px repeat(2,1fr)}.row.u{grid-template-columns:70px repeat(2,1fr)}
@@ -181,8 +182,11 @@ function render(){
   const pool=$('#pool'); pool.innerHTML='';
   const placed=new Set(Object.values(lineup));
   const order={G:0,D:1,F:2};
-  const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>injured.has(a.id)-injured.has(b.id)||order[a.pos]-order[b.pos]||a.name.localeCompare(b.name));
-  free.forEach(p=>{const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save(true);render()}};e.appendChild(x);pool.appendChild(e)});
+  const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>order[a.pos]-order[b.pos]||injured.has(a.id)-injured.has(b.id)||a.name.localeCompare(b.name));
+  const GROUP={G:'Torhüter',D:'Verteidiger',F:'Stürmer'}; let lastPos=null;
+  free.forEach(p=>{
+    if(p.pos!==lastPos){lastPos=p.pos;const n=free.filter(x=>x.pos===p.pos).length;const g=document.createElement('div');g.className='grp';g.textContent=`${GROUP[p.pos]} (${n})`;pool.appendChild(g);}
+    const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save(true);render()}};e.appendChild(x);pool.appendChild(e)});
   $('#poolCount').textContent=roster.length;
   pool.ondragover=e=>e.preventDefault(); pool.ondrop=e=>{e.preventDefault();if(drag)unplace(drag)};
   // Lines
