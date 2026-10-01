@@ -42,6 +42,11 @@ details{margin-top:10px}textarea{width:100%;height:110px}
 header .tabs{display:flex;gap:4px}.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 body.view-st .lineup-only{display:none}
 .stctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.seg{display:flex;gap:0}.seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}.seg button:last-child{border-radius:0 6px 6px 0}.seg button.on{background:var(--acc);border-color:var(--acc);color:#fff;position:relative}
+.stctl{flex-direction:column;align-items:stretch}.strow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:10px;border-top:1px solid var(--line)}
+#stMode{display:flex;flex-wrap:wrap;gap:12px}.mgrp{border:1px solid var(--c);border-radius:8px;padding:6px 8px 8px;background:color-mix(in srgb,var(--c) 8%,transparent)}
+.mgrp .mlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);margin-bottom:4px}
+.mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}
+.mgrp .seg button.on{background:var(--c);border-color:var(--c)}
 .rinkhead{display:flex;justify-content:space-between;margin-bottom:8px}
 .rink{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:400/480;border-radius:10px;overflow:hidden;background:#eaf3fb}
 @media(prefers-color-scheme:dark){.rink{background:#1d2b3a}}
@@ -95,10 +100,8 @@ footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px
   </section>
   <section>
     <div class="card stctl">
-      <div class="seg" id="stMode"></div>
-      <div class="seg" id="stUnit"></div>
-      <div class="seg" id="stForm"></div>
-      <button id="stClear">Einheit leeren</button>
+      <div id="stMode"></div>
+      <div class="strow"><div class="seg" id="stUnit"></div><div class="seg" id="stForm"></div><button id="stClear">Einheit leeren</button></div>
     </div>
     <div class="card" style="margin-top:12px">
       <div class="rinkhead"><b id="stTitle"></b><span id="stZone" style="color:var(--mut)"></span></div>
@@ -334,7 +337,13 @@ function renderST(){
   sanitizeST();
   const M=MODES[stMode], cur=stCfg(), form=M.forms[cur.form];
   const seg=(el,items,sel,fn)=>{el.innerHTML='';items.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;if(k==sel)b.className='on';b.onclick=()=>fn(k);el.appendChild(b)})};
-  seg($('#stMode'),Object.entries(MODES).map(([k,v])=>[k,v.label]),stMode,k=>{stMode=k;renderST()});
+  const modeBox=$('#stMode');modeBox.innerHTML='';
+  [['pp','Überzahl'],['pk','Unterzahl'],['ot','Overtime']].forEach(([g,name])=>{
+    const ks=Object.keys(MODES).filter(k=>k.startsWith(g));
+    const grp=document.createElement('div');grp.className='mgrp '+g;grp.innerHTML=`<div class="mlab">${name}</div><div class="seg"></div>`;
+    seg(grp.querySelector('.seg'),ks.map(k=>[k,MODES[k].label.replace(/^(Überzahl|Unterzahl|Overtime) /,'')]),stMode,k=>{stMode=k;renderST()});
+    modeBox.appendChild(grp);
+  });
   seg($('#stUnit'),[[1,'Einheit 1'],[2,'Einheit 2']],stUnit,k=>{stUnit=k;renderST()});
   seg($('#stForm'),Object.keys(M.forms).map(k=>[k,k]),cur.form,k=>{cur.form=k;save();renderST()});
   $('#stTitle').textContent=`${M.title} · Einheit ${stUnit} · ${cur.form}`;
