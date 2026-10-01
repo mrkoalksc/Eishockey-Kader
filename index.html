@@ -28,6 +28,7 @@ h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;c
 .slot small{color:var(--mut);font-size:10px;text-transform:uppercase}.slot .player{margin:2px 0}
 .slot.over.okdrop{border-color:var(--ok);background:rgba(26,143,76,.12)}.slot.over.nodrop{border-color:var(--bad);background:rgba(198,40,40,.12)}
 .slot.u21{border-color:var(--ok)}
+.player.injured{opacity:.55;cursor:not-allowed;background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(198,40,40,.1) 6px 12px)}.player.injured span:nth-child(2){text-decoration:line-through}.tag.inj{color:var(--bad);border-color:var(--bad)}.hurt{border:0;background:none;padding:0 3px}
 .x{border:0;background:none;color:var(--bad);padding:0 4px}
 #msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bad);color:#fff;padding:8px 14px;border-radius:8px;display:none;max-width:90vw;z-index:9}
 details{margin-top:10px}textarea{width:100%;height:110px}
@@ -64,13 +65,14 @@ details{margin-top:10px}textarea{width:100%;height:110px}
 <div id="msg"></div>
 <script src="data/del2.js"></script>
 <script>
+if(!window.DEL2_DATA){document.body.insertAdjacentHTML('afterbegin','<p style="padding:16px;color:#c62828">Spielerdaten fehlen: <b>data/del2.js</b> konnte nicht geladen werden. Der Ordner <code>data/</code> muss neben <code>index.html</code> liegen.</p>');throw new Error('DEL2_DATA fehlt');}
 const D = window.DEL2_DATA, U21_MIN = D.seasonStartYear - 20, MAX_IMPORT = 4;
 const $ = s => document.querySelector(s);
 const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let customTeams = store.get('del2.teams', []);
 let teams = () => [...D.teams, ...customTeams];
 let teamId = store.get('del2.team', D.teams[0].id);
-let roster = [], lineup = {};
+let roster = [], lineup = {}, injured = new Set();
 
 // Slots: 17 reguläre Plätze + Plätze 18/19 (nur deutsche U21)
 const SLOTS = [];
@@ -93,18 +95,19 @@ const byId = id => roster.find(p=>p.id===id);
 function load(){
   const t = teams().find(t=>t.id===teamId) || teams()[0]; teamId=t.id;
   const base = (t.players||[]).map((a,i)=>Array.isArray(a)?{id:`b${i}`,name:a[0],pos:a[1],birth:a[2],nat:a[3],num:a[4]}:a);
-  const mine = store.get('del2.roster.'+teamId, null);
-  roster = mine || base; lineup = store.get('del2.lineup.'+teamId, {});
+  const mine = store.get('del2.roster.v2.'+teamId, null);
+  roster = (mine && mine.length) ? mine : base; lineup = store.get('del2.lineup.'+teamId, {}); injured = new Set(store.get('del2.injured.'+teamId, []));
   roster.forEach((p,i)=>{p.id=p.id||'p'+i+Date.now(); p.pos=normPos(p.pos);});
-  Object.keys(lineup).forEach(k=>{if(!byId(lineup[k])||!slotById[k])delete lineup[k]});
+  Object.keys(lineup).forEach(k=>{if(!byId(lineup[k])||!slotById[k]||injured.has(lineup[k]))delete lineup[k]});
 }
-function save(){store.set('del2.roster.'+teamId,roster);store.set('del2.lineup.'+teamId,lineup);store.set('del2.team',teamId)}
+function save(editedRoster){if(editedRoster)store.set('del2.roster.v2.'+teamId,roster);store.set('del2.lineup.'+teamId,lineup);store.set('del2.injured.'+teamId,[...injured]);store.set('del2.team',teamId)}
 
 function toast(t){const m=$('#msg');m.textContent=t;m.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>m.style.display='none',3200)}
 
 // Prüft, ob Spieler in Slot darf. Gibt Fehlertext oder null zurück.
 function check(p, slotId){
   const s = slotById[slotId];
+  if(injured.has(p.id)) return p.name+' ist verletzt und nicht einsetzbar.';
   if(s.kind==='G' && p.pos!=='G') return 'Nur Torhüter auf Torhüter-Plätzen.';
   if(s.kind!=='G' && p.pos==='G') return 'Torhüter nur auf Torhüter-Plätzen.';
   if(s.kind==='U' && !(isGer(p)&&isU21(p))) return `Plätze 18/19 sind nur für deutsche U21-Spieler (Jg. ≥ ${U21_MIN}).`;
@@ -117,13 +120,18 @@ function place(pid, slotId){
   for(const k in lineup) if(lineup[k]===pid) delete lineup[k];
   lineup[slotId]=pid; save(); render();
 }
+function toggleInjury(pid){
+  if(injured.has(pid)) injured.delete(pid); else {injured.add(pid); for(const k in lineup) if(lineup[k]===pid) delete lineup[k];}
+  save(); render();
+}
 function unplace(pid){for(const k in lineup) if(lineup[k]===pid) delete lineup[k]; save(); render();}
 
 function playerEl(p, removable){
-  const e=document.createElement('div'); e.className='player'; e.draggable=true; e.dataset.id=p.id;
+  const e=document.createElement('div'); const inj=injured.has(p.id); e.className='player'+(inj?' injured':''); e.draggable=!inj; e.dataset.id=p.id;
   const imp=!isGer(p);
   e.innerHTML=`<span class="pos">${p.pos}</span><span>${p.num?'#'+p.num+' ':''}${esc(p.name)}</span>
-   <span class="meta">${imp?'<span class="tag imp">Import</span> ':''}${isGer(p)&&isU21(p)?'<span class="tag u21">U21</span> ':''}${esc(p.nat||'')} ${p.birth||''}</span>${removable?'<button class="x" title="Entfernen">✕</button>':''}`;
+   <span class="meta">${imp?'<span class="tag imp">Import</span> ':''}${isGer(p)&&isU21(p)?'<span class="tag u21">U21</span> ':''}${esc(p.nat||'')} ${p.birth||''}</span>${inj?'<span class="tag inj">verletzt</span>':''}<button class="hurt" title="${inj?'Wieder fit melden':'Als verletzt markieren'}">${inj?'✚':'🩹'}</button>${removable?'<button class="x" title="Entfernen">✕</button>':''}`;
+  e.querySelector('.hurt').onclick=ev=>{ev.stopPropagation();toggleInjury(p.id)};
   e.addEventListener('dragstart',ev=>{ev.dataTransfer.setData('text/plain',p.id);e.classList.add('dragging');drag=p.id;});
   e.addEventListener('dragend',()=>{e.classList.remove('dragging');drag=null;document.querySelectorAll('.over').forEach(x=>x.classList.remove('over','okdrop','nodrop'))});
   if(removable) e.querySelector('.x').onclick=ev=>{ev.stopPropagation();unplace(p.id)};
@@ -138,8 +146,8 @@ function render(){
   const pool=$('#pool'); pool.innerHTML='';
   const placed=new Set(Object.values(lineup));
   const order={G:0,D:1,F:2};
-  const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>order[a.pos]-order[b.pos]||a.name.localeCompare(b.name));
-  free.forEach(p=>{const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save();render()}};e.appendChild(x);pool.appendChild(e)});
+  const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>injured.has(a.id)-injured.has(b.id)||order[a.pos]-order[b.pos]||a.name.localeCompare(b.name));
+  free.forEach(p=>{const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save(true);render()}};e.appendChild(x);pool.appendChild(e)});
   $('#poolCount').textContent=roster.length;
   pool.ondragover=e=>e.preventDefault(); pool.ondrop=e=>{e.preventDefault();if(drag)unplace(drag)};
   // Lines
@@ -173,8 +181,8 @@ $('#team').onchange=e=>{teamId=e.target.value;load();save();render()};
 $('#addTeam').onclick=()=>{const n=prompt('Name des Teams:');if(!n)return;const t={id:'c'+Date.now(),name:n,players:[]};customTeams.push(t);store.set('del2.teams',customTeams);teamId=t.id;fillTeams();load();save();render()};
 $('#clear').onclick=()=>{lineup={};save();render()};
 function parseCsv(t){return t.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const c=l.split(/[;\t,]/).map(x=>x.trim());return{id:'i'+Math.random().toString(36).slice(2),name:c[0],pos:normPos(c[1]),birth:+c[2]||null,nat:(c[3]||'GER').toUpperCase(),num:c[4]||''}}).filter(p=>p.name)}
-$('#imp').onclick=()=>{roster.push(...parseCsv($('#csv').value));$('#csv').value='';save();render()};
-$('#repl').onclick=()=>{if(!confirm('Kader und Aufstellung ersetzen?'))return;roster=parseCsv($('#csv').value);lineup={};$('#csv').value='';save();render()};
+$('#imp').onclick=()=>{roster.push(...parseCsv($('#csv').value));$('#csv').value='';save(true);render()};
+$('#repl').onclick=()=>{if(!confirm('Kader und Aufstellung ersetzen?'))return;roster=parseCsv($('#csv').value);lineup={};$('#csv').value='';save(true);render()};
 $('#exp').onclick=()=>{$('#csv').value=roster.map(p=>[p.name,p.pos,p.birth||'',p.nat,p.num||''].join(';')).join('\n')};
 $('#auto').onclick=()=>{ // einfacher Vorschlag unter Beachtung der Regeln
   lineup={}; const rank=roster.slice();
