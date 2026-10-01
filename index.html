@@ -43,11 +43,11 @@ header .tabs{display:flex;gap:4px}.tabs button.on{background:var(--acc);border-c
 body.view-st .lineup-only{display:none}
 .stctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.seg{display:flex;gap:0}.seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}.seg button:last-child{border-radius:0 6px 6px 0}.seg button.on{background:var(--acc);border-color:var(--acc);color:#fff;position:relative}
 .rinkhead{display:flex;justify-content:space-between;margin-bottom:8px}
-.rink{position:relative;width:100%;max-width:820px;margin:0 auto;aspect-ratio:600/400;border-radius:10px;overflow:hidden;background:#eaf3fb}
+.rink{position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:400/600;border-radius:10px;overflow:hidden;background:#eaf3fb}
 @media(prefers-color-scheme:dark){.rink{background:#1d2b3a}}
 .rink svg{position:absolute;inset:0;width:100%;height:100%}
 [hidden]{display:none!important}
-.tok{position:absolute;width:10.5%;transform:translate(-50%,-50%);text-align:center;font-size:11px;font-weight:600}
+.tok{position:absolute;width:15%;transform:translate(-50%,-50%);text-align:center;font-size:11px;font-weight:600}
 .tok .dot{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.6vw,18px);font-weight:700;border:2px dashed #7a8aa0;background:rgba(255,255,255,.55);color:#51627a;cursor:default}
 .tok.full .dot{border:3px solid var(--acc);border-style:solid;background:#fff;color:#0b2a5b;cursor:grab}
 .tok.D.full .dot{border-color:#c62828}.tok.over .dot{box-shadow:0 0 0 4px rgba(26,143,76,.5)}
@@ -337,10 +337,10 @@ function renderST(){
   $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler + Torhüter`;
   // Rink
   const rink=$('#rink');
-  rink.innerHTML=RINK_SVG;
+  const pp=M.zone==='Angriffsdrittel';rink.innerHTML=rinkSvg(pp);
   form.p.forEach(([fx,fy,lab],i)=>{
     const t=document.createElement('div'),pid=cur.assign[i],p=pid&&byId(pid);
-    t.className='tok'+(p?' full '+p.pos:'');t.style.left=((30+fx*520)/6)+'%';t.style.top=((20+fy*360)/4)+'%';
+    t.className='tok'+(p?' full '+p.pos:'');t.style.left=((20+fy*360)/4)+'%';t.style.top=((pp?570-fx*520:30+fx*520)/6)+'%';
     t.innerHTML=p?`<div class="dot">${esc(p.num||p.pos)}</div><div class="nm">${esc(p.name.split(' ').slice(-1)[0])}</div><button class="rm" title="Entfernen">✕</button>`:`<div class="dot">${i+1}</div><div class="pl">${esc(lab)}</div>`;
     if(p){t.draggable=true;t.addEventListener('dragstart',e=>{hideTip();e.dataTransfer.setData('text/plain',p.id);drag=p.id});t.addEventListener('dragend',()=>{drag=null});
       t.addEventListener('mouseenter',()=>showTip(p,t));t.addEventListener('mouseleave',hideTip);t.querySelector('.rm').onclick=ev=>{ev.stopPropagation();hideTip();stRemove(p.id)};}
@@ -366,16 +366,16 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   $('#v-lineup').hidden=view!=='lineup';$('#v-st').hidden=view!=='st';document.body.classList.toggle('view-st',view==='st');hideTip();
   if(view==='st')renderST();
 });
-const RINK_SVG=`<svg viewBox="0 0 600 400" preserveAspectRatio="none"><g fill="none" stroke-width="3">
-<path d="M30 0V400" stroke="#2f6fd6" stroke-width="12"/>
-<path d="M540 14V386" stroke="#d33" stroke-width="3"/>
-<path d="M0 6H555Q594 6 594 46V354Q594 394 555 394H0" stroke="#7a8aa0" stroke-width="5"/>
-<path d="M540 160A40 40 0 0 0 540 240Z" fill="#8ec5ff" fill-opacity=".5" stroke="#d33" stroke-width="2"/>
-<rect x="540" y="172" width="22" height="56" stroke="#d33" stroke-width="3" fill="#fff" fill-opacity=".6"/>
-<circle cx="420" cy="100" r="50" stroke="#d33" stroke-width="2"/><circle cx="420" cy="300" r="50" stroke="#d33" stroke-width="2"/>
-<path d="M300 14V386" stroke="none"/>
-</g><g fill="#d33"><circle cx="420" cy="100" r="6"/><circle cx="420" cy="300" r="6"/><circle cx="90" cy="100" r="5" fill="#2f6fd6"/><circle cx="90" cy="300" r="5" fill="#2f6fd6"/></g>
-<text x="40" y="392" font-size="13" fill="#2f6fd6" font-family="sans-serif" transform="translate(0,-4)">Blaue Linie</text><text x="470" y="392" font-size="13" fill="#d33" font-family="sans-serif" transform="translate(0,-4)">Torlinie</text></svg>`;
+// Hochformat: Überzahl = Tor oben / Blaue Linie unten, Unterzahl = Tor unten / Blaue Linie oben (vertikal gespiegelt)
+const rinkSvg=pp=>`<svg viewBox="0 0 400 600" preserveAspectRatio="none"><g fill="none"${pp?'':' transform="matrix(1 0 0 -1 0 600)"'}>
+<path d="M6 600V46Q6 6 46 6H354Q394 6 394 46V600" stroke="#7a8aa0" stroke-width="5"/>
+<path d="M0 570H400" stroke="#2f6fd6" stroke-width="12"/>
+<path d="M14 60H386" stroke="#d33" stroke-width="3"/>
+<path d="M160 60A40 40 0 0 0 240 60Z" fill="#8ec5ff" fill-opacity=".5" stroke="#d33" stroke-width="2"/>
+<rect x="172" y="38" width="56" height="22" stroke="#d33" stroke-width="3" fill="#fff" fill-opacity=".6"/>
+<circle cx="100" cy="180" r="50" stroke="#d33" stroke-width="2"/><circle cx="300" cy="180" r="50" stroke="#d33" stroke-width="2"/>
+<circle cx="100" cy="180" r="6" fill="#d33" stroke="none"/><circle cx="300" cy="180" r="6" fill="#d33" stroke="none"/>
+</g><text x="12" y="${pp?560:48}" font-size="13" fill="#2f6fd6" font-family="sans-serif">Blaue Linie</text><text x="388" y="${pp?52:556}" text-anchor="end" font-size="13" fill="#d33" font-family="sans-serif">Torlinie</text></svg>`;
 
 fillTeams();load();render();
 </script>
