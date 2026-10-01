@@ -45,7 +45,7 @@ body.view-st .lineup-only{display:none}
 .stctl{flex-direction:column;align-items:stretch}.strow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:10px;border-top:1px solid var(--line)}
 #stMode{display:flex;flex-wrap:wrap;gap:12px}.mgrp{border:1px solid var(--c);border-radius:8px;padding:6px 8px 8px;background:color-mix(in srgb,var(--c) 8%,transparent)}
 .mgrp .mlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);margin-bottom:4px}
-.mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}.mgrp.eg{--c:#7b3fc4}.mgrp .seg{flex-wrap:wrap}
+.mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}.mgrp.eg{--c:#7b3fc4}.mgrp.og{--c:#b0278c}.mgrp .seg{flex-wrap:wrap}
 .mgrp .seg button.on{background:var(--c);border-color:var(--c)}
 .rinkhead{gap:12px;flex-wrap:wrap;display:flex;justify-content:space-between;margin-bottom:8px}
 .rink{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:400/480;border-radius:10px;overflow:hidden;background:#eaf3fb}
@@ -319,6 +319,10 @@ const F4OT={
   'Diamond (1-2-1)':{p:[[.16,.5,'Point'],[.45,.15,'Wall L'],[.45,.85,'Wall R'],[.78,.5,'Torraum']]},
   'Box (2-2)':{p:[[.18,.3,'Point L'],[.18,.7,'Point R'],[.6,.22,'Low L'],[.6,.78,'Low R']]},
   '1-3 (Umbrella)':{p:[[.14,.5,'Point'],[.45,.15,'Wall L'],[.55,.5,'Slot'],[.45,.85,'Wall R']]}};
+const F5DEF={
+  'Box+1':{p:[[.35,.3,'Front L'],[.35,.7,'Front R'],[.72,.25,'Back L'],[.72,.75,'Back R'],[.55,.5,'Slot']]},
+  '1-3-1 (Zone)':{p:[[.3,.5,'Spitze'],[.55,.15,'Wall L'],[.55,.5,'Slot'],[.55,.85,'Wall R'],[.8,.5,'Torraum']]},
+  '2-3 (tief)':{p:[[.35,.3,'D L'],[.35,.7,'D R'],[.7,.15,'Wing L'],[.7,.5,'Mitte'],[.7,.85,'Wing R']]}};
 const F6={
   '1-3-2':{p:[[.14,.5,'Point'],[.45,.13,'Wall L'],[.5,.5,'Slot'],[.45,.87,'Wall R'],[.8,.25,'Low L'],[.8,.75,'Low R']]},
   '2-2-2':{p:[[.14,.28,'Point L'],[.14,.72,'Point R'],[.5,.15,'Wall L'],[.5,.85,'Wall R'],[.8,.3,'Low L'],[.8,.7,'Low R']]},
@@ -326,14 +330,15 @@ const F6={
 // g = Gruppe, s = Kurzlabel, zone: Angriffsdrittel = Tor oben, sonst Defensivdrittel
 const MODES = {
   pp54:{g:'pp',s:'5 gegen 4',title:'Powerplay 5-4',zone:'Angriffsdrittel',n:5,forms:F5PP},
+  pp43:{g:'pp',s:'4 gegen 3',title:'Powerplay 4-3',zone:'Angriffsdrittel',n:4,forms:F4OT},
   pp53:{g:'pp',s:'5 gegen 3',title:'Powerplay 5-3',zone:'Angriffsdrittel',n:5,forms:F5PP3},
   pk45:{g:'pk',s:'4 gegen 5',title:'Penalty Kill 4-5',zone:'Defensivdrittel',n:4,forms:F4PK},
+  pk34:{g:'pk',s:'3 gegen 4',title:'Penalty Kill 3-4',zone:'Defensivdrittel',n:3,forms:F3PK},
   pk35:{g:'pk',s:'3 gegen 5',title:'Penalty Kill 3-5',zone:'Defensivdrittel',n:3,forms:F3PK},
   ot33:{g:'ot',s:'3 gegen 3',title:'Overtime 3-3',zone:'Angriffsdrittel',n:3,forms:F3OT},
-  ot43:{g:'ot',s:'4 gegen 3 (Überzahl)',title:'Overtime 4-3 Überzahl',zone:'Angriffsdrittel',n:4,forms:F4OT},
-  ot53:{g:'ot',s:'5 gegen 3 (Überzahl)',title:'Overtime 5-3 Überzahl',zone:'Angriffsdrittel',n:5,forms:F5PP3},
-  ot34:{g:'ot',s:'3 gegen 4 (Unterzahl)',title:'Overtime 3-4 Unterzahl',zone:'Defensivdrittel',n:3,forms:F3PK},
-  ot35:{g:'ot',s:'3 gegen 5 (Unterzahl)',title:'Overtime 3-5 Unterzahl',zone:'Defensivdrittel',n:3,forms:F3PK},
+  og56:{g:'og',s:'5 gegen 6',title:'Unterzahl 5-6 (Gegner ohne Torhüter)',zone:'Defensivdrittel',n:5,forms:F5DEF},
+  og46:{g:'og',s:'4 gegen 6',title:'Unterzahl 4-6 (Gegner ohne Torhüter)',zone:'Defensivdrittel',n:4,forms:F4PK},
+  og36:{g:'og',s:'3 gegen 6',title:'Unterzahl 3-6 (Gegner ohne Torhüter)',zone:'Defensivdrittel',n:3,forms:F3PK},
   eg65:{g:'eg',s:'6 gegen 5',title:'Gezogener Torhüter 6-5',zone:'Angriffsdrittel',n:6,forms:F6},
   eg64:{g:'eg',s:'6 gegen 4',title:'Gezogener Torhüter 6-4',zone:'Angriffsdrittel',n:6,forms:F6},
   eg63:{g:'eg',s:'6 gegen 3',title:'Gezogener Torhüter 6-3',zone:'Angriffsdrittel',n:6,forms:F6}
@@ -358,7 +363,7 @@ function renderST(){
   const M=MODES[stMode], cur=stCfg(), form=M.forms[cur.form];
   const seg=(el,items,sel,fn)=>{el.innerHTML='';items.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;if(k==sel)b.className='on';b.onclick=()=>fn(k);el.appendChild(b)})};
   const modeBox=$('#stMode');modeBox.innerHTML='';
-  [['pp','Überzahl'],['pk','Unterzahl'],['ot','Overtime'],['eg','Gezogener Torhüter']].forEach(([g,name])=>{
+  [['pp','Überzahl'],['pk','Unterzahl'],['og','Unterzahl: Gegner zieht Torhüter'],['eg','Eigener Torhüter gezogen'],['ot','Overtime']].forEach(([g,name])=>{
     const ks=Object.keys(MODES).filter(k=>MODES[k].g===g);
     const grp=document.createElement('div');grp.className='mgrp '+g;grp.innerHTML=`<div class="mlab">${name}</div><div class="seg"></div>`;
     seg(grp.querySelector('.seg'),ks.map(k=>[k,MODES[k].s]),stMode,k=>{stMode=k;renderST()});
@@ -367,7 +372,7 @@ function renderST(){
   seg($('#stUnit'),[[1,'Einheit 1'],[2,'Einheit 2']],stUnit,k=>{stUnit=k;renderST()});
   seg($('#stForm'),Object.keys(M.forms).map(k=>[k,k]),cur.form,k=>{cur.form=k;save();renderST()});
   $('#stTitle').textContent=`${M.title} · Einheit ${stUnit} · ${cur.form}`;
-  $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler ${stMode.startsWith('eg')?'(Torhüter gezogen)':'+ Torhüter'}`;
+  $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler ${stMode.startsWith('eg')?'(eigener Torhüter gezogen)':'+ Torhüter'}`;
   // Rink
   const rink=$('#rink');
   const pp=M.zone==='Angriffsdrittel';rink.innerHTML=rinkSvg(pp);
