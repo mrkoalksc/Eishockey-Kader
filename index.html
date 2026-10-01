@@ -124,24 +124,39 @@ function save(editedRoster){if(editedRoster)store.set('del2.roster.v2.'+teamId,r
 function toast(t){const m=$('#msg');m.textContent=t;m.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>m.style.display='none',3200)}
 
 // Prüft, ob Spieler in Slot darf. Gibt Fehlertext oder null zurück.
-function check(p, slotId){
+function check(p, slotId, lin=lineup){
   const s = slotById[slotId];
   if(injured.has(p.id)) return p.name+' ist verletzt und nicht einsetzbar.';
   if(s.kind==='G' && p.pos!=='G') return 'Nur Torhüter auf Torhüter-Plätzen.';
   if(s.kind!=='G' && p.pos==='G') return 'Torhüter nur auf Torhüter-Plätzen.';
   if(s.kind==='U' && !(isGer(p)&&isU21(p))) return `Plätze 18/19 sind nur für deutsche U21-Spieler (Jg. ≥ ${U21_MIN}).`;
-  const others = Object.entries(lineup).filter(([k,id])=>id!==p.id && k!==slotId).map(([,id])=>byId(id));
+  const others = Object.entries(lin).filter(([k,id])=>id!==p.id && k!==slotId).map(([,id])=>byId(id));
   if(!isGer(p) && others.filter(o=>!isGer(o)).length>=MAX_IMPORT) return 'Maximal 4 Importspieler im Spielbericht.';
   return null;
 }
 function place(pid, slotId){
-  const p=byId(pid), err=check(p,slotId); if(err) return toast(err);
-  for(const k in lineup) if(lineup[k]===pid) delete lineup[k];
+  const p=byId(pid), from=Object.keys(lineup).find(k=>lineup[k]===pid);
+  if(from===slotId) return;
+  const occ=lineup[slotId]&&byId(lineup[slotId]);
+  if(from&&occ){ // Tausch zweier Spieler innerhalb der Aufstellung
+    const rest={...lineup}; delete rest[from]; delete rest[slotId];
+    const err=check(p,slotId,rest)||check(occ,from,rest);
+    if(err) return toast('Tausch nicht möglich: '+err);
+    lineup[from]=occ.id; lineup[slotId]=p.id; save(); render(); return;
+  }
+  const err=check(p,slotId); if(err) return toast(err);
+  if(from) delete lineup[from];
   lineup[slotId]=pid; save(); render();
 }
 function toggleInjury(pid){
   if(injured.has(pid)) injured.delete(pid); else {injured.add(pid); for(const k in lineup) if(lineup[k]===pid) delete lineup[k];}
   save(); render();
+}
+function canDrop(p,slotId){
+  const from=Object.keys(lineup).find(k=>lineup[k]===p.id), occ=lineup[slotId]&&byId(lineup[slotId]);
+  if(from===slotId) return true;
+  if(from&&occ){const rest={...lineup};delete rest[from];delete rest[slotId];return !check(p,slotId,rest)&&!check(occ,from,rest);}
+  return !check(p,slotId);
 }
 function unplace(pid){for(const k in lineup) if(lineup[k]===pid) delete lineup[k]; save(); render();}
 
@@ -205,7 +220,7 @@ function slotEl(id){
   const s=slotById[id], el=document.createElement('div'); el.className='slot'+(s.kind==='U'?' u21':'');
   el.innerHTML=`<small>${s.label}</small>`;
   if(lineup[id]) el.appendChild(playerEl(byId(lineup[id]),true));
-  el.ondragover=e=>{e.preventDefault();const p=byId(drag);if(!p)return;el.classList.add('over',check(p,id)?'nodrop':'okdrop')};
+  el.ondragover=e=>{e.preventDefault();const p=byId(drag);if(!p)return;el.classList.add('over',canDrop(p,id)?'okdrop':'nodrop')};
   el.ondragleave=()=>el.classList.remove('over','okdrop','nodrop');
   el.ondrop=e=>{e.preventDefault();el.classList.remove('over','okdrop','nodrop');const pid=e.dataTransfer.getData('text/plain');if(pid)place(pid,id)};
   return el;
