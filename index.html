@@ -132,7 +132,7 @@ const $ = s => document.querySelector(s);
 const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let customTeams = store.get('del2.teams', []);
 let teams = () => [...D.teams, ...customTeams];
-let teamId = store.get('del2.team', D.teams[0].id);
+let teamId = store.get('del2.team', (D.teams.find(t=>t.id==='sbr')||D.teams[0]).id); // Standard: Starbulls Rosenheim
 let roster = [], lineup = {}, injured = new Set(), st = {}, view = 'lineup';
 
 // Slots: 19 Feldspielerplätze; die zwei deutschen U21-Spieler (Plätze 18/19) dürfen an beliebiger Stelle stehen
