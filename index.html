@@ -309,7 +309,11 @@ const MODES = {
   pk35:{label:'Unterzahl 3 gegen 5',title:'Penalty Kill 3-5',zone:'Defensivdrittel',n:3,forms:{
     'Dreieck (1-2)':{p:[[.45,.5,'Slot'],[.72,.27,'Low L'],[.72,.73,'Low R']]},
     'Umgekehrtes Dreieck (2-1)':{p:[[.4,.3,'Front L'],[.4,.7,'Front R'],[.78,.5,'Torraum']]},
-    'Linie (Sperrriegel)':{p:[[.6,.2,'Links'],[.6,.5,'Mitte'],[.6,.8,'Rechts']]}}}
+    'Linie (Sperrriegel)':{p:[[.6,.2,'Links'],[.6,.5,'Mitte'],[.6,.8,'Rechts']]}}},
+  ot33:{label:'Overtime 3 gegen 3',title:'Overtime 3-3',zone:'Angriffsdrittel',n:3,forms:{
+    'Dreieck (1-2)':{p:[[.22,.5,'Point'],[.6,.25,'Flügel L'],[.6,.75,'Flügel R']]},
+    'Umgekehrtes Dreieck (2-1)':{p:[[.2,.3,'Point L'],[.2,.7,'Point R'],[.6,.5,'Slot']]},
+    'Breit (Spread)':{p:[[.3,.12,'Wall L'],[.2,.5,'Mitte'],[.3,.88,'Wall R']]}}}
 };
 let stMode='pp54', stUnit=1;
 const stCfg=()=>{const m=(st[stMode]=st[stMode]||{});const u=(m['u'+stUnit]=m['u'+stUnit]||{assign:{}});const f=Object.keys(MODES[stMode].forms);if(!u.form||!MODES[stMode].forms[u.form])u.form=f[0];return u};
