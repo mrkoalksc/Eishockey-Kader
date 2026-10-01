@@ -280,10 +280,11 @@ function stats(){
   const ps=Object.values(lineup).map(byId), g=ps.filter(p=>p.pos==='G').length, sk=ps.length-g, imp=ps.filter(p=>!isGer(p)).length;
   const u=['U18','U19'].filter(k=>lineup[k]).length, placed=new Set(Object.values(lineup));
   const avail=roster.filter(p=>p.pos!=='G'&&isGer(p)&&isU21(p)&&!injured.has(p.id)&&!placed.has(p.id)).length;
+  const availAll=roster.filter(p=>p.pos!=='G'&&isGer(p)&&isU21(p)&&!injured.has(p.id)).length, missing=Math.max(0,Math.min(2,availAll)-u);
   const pill=(t,c,title)=>`<span class="pill ${c}" ${title?`title="${title}"`:''}>${t}</span>`;
   let uPill;
   if(u===2) uPill=pill(`U21-Plätze 18/19: 2/2`,'ok');
-  else if(avail>0) uPill=pill(`U21-Plätze 18/19: ${u}/2 · ${avail} U21 verfügbar`,'warn','Plätze 18/19 dürfen nur mit deutschen U21-Spielern besetzt werden – sie dürfen aber leer bleiben.');
+  else if(missing>0) uPill=pill(`U21-Plätze 18/19: ${u}/2 · ${availAll} U21 verfügbar`,'bad','Plätze 18/19 dürfen nur mit deutschen U21-Spielern besetzt werden – sie dürfen aber leer bleiben.');
   else uPill=pill(`U21-Plätze 18/19: ${u}/2 · keine weiteren U21 verfügbar, Platz bleibt leer`,'ok','Ohne verfügbare deutsche U21-Spieler bleiben Platz 18/19 leer, das Team tritt mit weniger Feldspielern an.');
   // Zulässigkeit des Spielberichts
   const errs=[],hints=[];
@@ -293,7 +294,7 @@ function stats(){
   ['U18','U19'].forEach((k,i)=>{const p=lineup[k]&&byId(lineup[k]);if(p&&!(isGer(p)&&isU21(p)))errs.push(`Platz ${18+i}: ${p.name} ist kein deutscher U21-Spieler.`)});
   ps.filter(p=>injured.has(p.id)).forEach(p=>errs.push(`${p.name} ist verletzt und nicht einsetzbar.`));
   if(sk<17) hints.push(`Nur ${sk} Feldspieler (regulär 17 + 2 U21-Plätze).`);
-  if(u<2&&avail>0) hints.push(`Platz 18/19 noch frei – ${avail} deutsche U21-Spieler verfügbar.`);
+  if(missing>0) errs.push(`Platz 18/19: ${missing===2?'beide Plätze sind':'ein Platz ist'} frei, obwohl ${availAll} nicht verletzte deutsche U21-Spieler verfügbar sind – diese Plätze müssen besetzt werden.`);
   const okk=!errs.length;
   $('#valid').className='valid '+(okk?'ok':'bad');
   $('#valid').innerHTML=`<span class="ic">${okk?'✔':'✖'}</span><div><b>Kader ${okk?'zulässig':'unzulässig'}</b><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}${hints.map(e=>`<li class="hint">${esc(e)}</li>`).join('')}</ul></div>`;
