@@ -10,13 +10,14 @@ const POS = {FO:'F', DE:'D', GK:'G'};
 const rows = fs.readFileSync('data/del2_spieler_2026-27.csv','utf8').replace(/^﻿/,'').split(/\r?\n/).slice(1).filter(Boolean);
 const teams = Object.fromEntries(Object.entries(CLUBS).map(([k,n])=>[k,{id:k.toLowerCase(),name:n,players:[]}]));
 for (const r of rows) {
-  const [name,club,nat,nr,pos,,,,bday] = r.split(';');
+  const [name,club,nat,nr,pos,hand,cm,kg,bday,,place] = r.split(';');
   if (!teams[club]) throw new Error('Unbekannter Club '+club);
-  teams[club].players.push([name,POS[pos],+bday.split('.')[2],nat,nr?+nr:'']);
+  const [d,m,y] = bday.split('.');
+  teams[club].players.push([name,POS[pos],+y,nat,nr?+nr:'',`${y}-${m}-${d}`,+cm||null,+kg||null,hand||'',(place||'').trim()]);
 }
 const list = Object.values(teams).sort((a,b)=>a.name.localeCompare(b.name,'de'));
 const out = `// Automatisch erzeugt aus data/del2_spieler_2026-27.csv (scripts/build-data.mjs)
-// Spieler: [name, pos ("G"|"D"|"F"), Geburtsjahr, Nation, Trikotnr.]
+// Spieler: [name, pos ("G"|"D"|"F"), Geburtsjahr, Nation, Trikotnr., Geburtsdatum, cm, kg, Hand (L/R), Geburtsort]
 window.DEL2_DATA = {
   season: "2026/27",
   seasonStartYear: 2026, // U21: Geburtsjahr >= seasonStartYear - 20
