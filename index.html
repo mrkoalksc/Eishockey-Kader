@@ -100,7 +100,7 @@ footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px
     <div id="valid" class="valid"></div>
     <div class="stats" id="stats"></div>
     <div class="card lines" id="lines"></div>
-    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · Plätze 18 und 19 ausschließlich für deutsche U21-Spieler (jede Position); gibt es keine fitten/verfügbaren, bleiben sie leer und das Team tritt mit z. B. nur 17 Feldspielern an · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht · max. 15 reguläre (altersunabhängige) Feldspieler, alle übrigen Plätze mit deutschen U23-Spielern (Jg. ≥ <span id="u23y"></span>). U21 = Geburtsjahr ≥ <span id="u21y"></span>. Nationalität „GER“ gilt als deutsch.</p>
+    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · zwei der Plätze (18/19) ausschließlich für deutsche U21-Spieler – diese dürfen an beliebiger Stelle in der Aufstellung stehen; gibt es keine fitten/verfügbaren, bleiben die Plätze leer und das Team tritt mit z. B. nur 17 Feldspielern an · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht · max. 15 reguläre (altersunabhängige) Feldspieler, alle übrigen Plätze mit deutschen U23-Spielern (Jg. ≥ <span id="u23y"></span>). U21 = Geburtsjahr ≥ <span id="u21y"></span>. Nationalität „GER“ gilt als deutsch.</p>
   </section>
 </main>
 <main id="v-st" hidden>
@@ -134,7 +134,7 @@ let teams = () => [...D.teams, ...customTeams];
 let teamId = store.get('del2.team', D.teams[0].id);
 let roster = [], lineup = {}, injured = new Set(), st = {}, view = 'lineup';
 
-// Slots: 17 reguläre Plätze + Plätze 18/19 (nur deutsche U21)
+// Slots: 19 Feldspielerplätze; die zwei deutschen U21-Spieler (Plätze 18/19) dürfen an beliebiger Stelle stehen
 const SLOTS = [];
 const rows = [];
 ['G1','G2'].forEach((id,i)=>SLOTS.push({id,kind:'G',label:i?'Ersatz-TW':'Start-TW'}));
@@ -142,9 +142,9 @@ rows.push({cls:'g',label:'Torhüter',ids:['G1','G2']});
 for(let l=1;l<=4;l++){const ids=['LW','C','RW'].map(p=>`F${l}${p}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LW','C','RW'][i]}));rows.push({cls:'f',label:`Reihe ${l}`,ids});}
 for(let p=1;p<=2;p++){const ids=['LD','RD'].map(x=>`D${p}${x}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LD','RD'][i]}));rows.push({cls:'d',label:`Paar ${p}`,ids});}
 SLOTS.push({id:'D3LD',kind:'S',label:'LD (Paar 3)'});
-SLOTS.push({id:'U18',kind:'U',label:'Platz 18 · U21 DE · beliebige Position'},{id:'U19',kind:'U',label:'Platz 19 · U21 DE · beliebige Position'});
-rows.push({cls:'d',label:'Paar 3 / Pl. 18',ids:['D3LD','U18']});
-rows.push({cls:'d',label:'Platz 19',ids:['U19']});
+SLOTS.push({id:'D3RD',kind:'S',label:'RD (Paar 3)'},{id:'X19',kind:'S',label:'Extra (19. Feldspieler)'});
+rows.push({cls:'d',label:'Paar 3',ids:['D3LD','D3RD']});
+rows.push({cls:'d',label:'Extra',ids:['X19']});
 const slotById = Object.fromEntries(SLOTS.map(s=>[s.id,s]));
 
 const ISO2={GER:'DE',CAN:'CA',USA:'US',CZE:'CZ',SVK:'SK',SWE:'SE',FIN:'FI',SUI:'CH',RUS:'RU',LAT:'LV',LTU:'LT',EST:'EE',DEN:'DK',NOR:'NO',POL:'PL',HUN:'HU',AUT:'AT',FRA:'FR',ITA:'IT',SLO:'SI',JPN:'JP',KOR:'KR',KAZ:'KZ',BLR:'BY',UKR:'UA',GBR:'GB',NED:'NL',BEL:'BE',CRO:'HR',ROU:'RO',SRB:'RS',LUX:'LU',ESP:'ES',AUS:'AU',CHN:'CN'};
@@ -169,6 +169,7 @@ function load(){
   const mine = store.get('del2.roster.v2.'+teamId, null);
   roster = (mine && mine.length) ? mine : base; lineup = store.get('del2.lineup.'+teamId, {}); injured = new Set(store.get('del2.injured.'+teamId, [])); st = store.get('del2.st.'+teamId, {});
   roster.forEach((p,i)=>{p.id=p.id||'p'+i+Date.now(); p.pos=normPos(p.pos);});
+  if(lineup.U18&&!lineup.D3RD)lineup.D3RD=lineup.U18; if(lineup.U19&&!lineup.X19)lineup.X19=lineup.U19; delete lineup.U18; delete lineup.U19;
   Object.keys(lineup).forEach(k=>{if(!byId(lineup[k])||!slotById[k]||injured.has(lineup[k]))delete lineup[k]});
 }
 function save(editedRoster){if(editedRoster)store.set('del2.roster.v2.'+teamId,roster);store.set('del2.lineup.'+teamId,lineup);store.set('del2.injured.'+teamId,[...injured]);store.set('del2.st.'+teamId,st);store.set('del2.team',teamId)}
@@ -181,7 +182,6 @@ function check(p, slotId, lin=lineup){
   if(injured.has(p.id)) return p.name+' ist verletzt und nicht einsetzbar.';
   if(s.kind==='G' && p.pos!=='G') return 'Nur Torhüter auf Torhüter-Plätzen.';
   if(s.kind!=='G' && p.pos==='G') return 'Torhüter nur auf Torhüter-Plätzen.';
-  if(s.kind==='U' && !(isGer(p)&&isU21(p))) return `Plätze 18/19 sind nur für deutsche U21-Spieler (Jg. ≥ ${U21_MIN}).`;
   const others = Object.entries(lin).filter(([k,id])=>id!==p.id && k!==slotId).map(([,id])=>byId(id));
   if(!isGer(p) && others.filter(o=>!isGer(o)).length>=MAX_IMPORT) return 'Maximal 4 Importspieler im Spielbericht.';
   if(p.pos!=='G' && !isYoung(p) && others.filter(o=>o.pos!=='G'&&!isYoung(o)).length>=MAX_REGULAR) return `Maximal ${MAX_REGULAR} reguläre Feldspieler – die übrigen Plätze nur für deutsche U23-Spieler (Jg. ≥ ${U23_MIN}).`;
@@ -271,7 +271,7 @@ function render(){
   if(view==='st') renderST();
 }
 function slotEl(id){
-  const s=slotById[id], el=document.createElement('div'); el.className='slot'+(s.kind==='U'?' u21':'');
+  const s=slotById[id], el=document.createElement('div'); el.className='slot';
   el.innerHTML=`<small>${s.label}</small>`;
   if(lineup[id]) el.appendChild(playerEl(byId(lineup[id]),true));
   el.ondragover=e=>{e.preventDefault();const p=byId(drag);if(!p)return;el.classList.add('over',canDrop(p,id)?'okdrop':'nodrop')};
@@ -281,23 +281,22 @@ function slotEl(id){
 }
 function stats(){
   const ps=Object.values(lineup).map(byId), g=ps.filter(p=>p.pos==='G').length, sk=ps.length-g, imp=ps.filter(p=>!isGer(p)).length;
-  const u=['U18','U19'].filter(k=>lineup[k]).length, placed=new Set(Object.values(lineup));
+  const u=ps.filter(p=>p.pos!=='G'&&isGer(p)&&isU21(p)).length, placed=new Set(Object.values(lineup));
   const avail=roster.filter(p=>p.pos!=='G'&&isGer(p)&&isU21(p)&&!injured.has(p.id)&&!placed.has(p.id)).length;
   const availAll=roster.filter(p=>p.pos!=='G'&&isGer(p)&&isU21(p)&&!injured.has(p.id)).length, missing=Math.max(0,Math.min(2,availAll)-u);
   const pill=(t,c,title)=>`<span class="pill ${c}" ${title?`title="${title}"`:''}>${t}</span>`;
   let uPill;
-  if(u===2) uPill=pill(`U21-Plätze 18/19: 2/2`,'ok');
-  else if(missing>0) uPill=pill(`U21-Plätze 18/19: ${u}/2 · ${availAll} U21 verfügbar`,'bad','Plätze 18/19 dürfen nur mit deutschen U21-Spielern besetzt werden – sie dürfen aber leer bleiben.');
-  else uPill=pill(`U21-Plätze 18/19: ${u}/2 · keine weiteren U21 verfügbar, Platz bleibt leer`,'ok','Ohne verfügbare deutsche U21-Spieler bleiben Platz 18/19 leer, das Team tritt mit weniger Feldspielern an.');
+  if(u>=Math.min(2,availAll)&&u>=2) uPill=pill(`Deutsche U21-Spieler ${u} (mind. 2)`,'ok');
+  else if(missing>0) uPill=pill(`Deutsche U21-Spieler ${u}/2 · ${availAll} verfügbar`,'bad','Zwei deutsche U21-Spieler müssen im Spielbericht stehen (beliebige Position), sofern verfügbar.');
+  else uPill=pill(`Deutsche U21-Spieler ${u}/2 · keine weiteren verfügbar`,'ok','Ohne verfügbare deutsche U21-Spieler bleiben diese Plätze leer.');
   // Zulässigkeit des Spielberichts
   const errs=[],hints=[];
   if(g===0) errs.push('Kein Torhüter aufgestellt.'); if(g>2) errs.push(`Zu viele Torhüter (${g}/2).`); if(g===1) hints.push('Nur 1 Torhüter aufgestellt (2 möglich).');
   if(sk>19) errs.push(`Zu viele Feldspieler (${sk}/19).`);
   if(imp>MAX_IMPORT) errs.push(`Zu viele Importspieler (${imp}/${MAX_IMPORT}).`);
-  ['U18','U19'].forEach((k,i)=>{const p=lineup[k]&&byId(lineup[k]);if(p&&!(isGer(p)&&isU21(p)))errs.push(`Platz ${18+i}: ${p.name} ist kein deutscher U21-Spieler.`)});
   ps.filter(p=>injured.has(p.id)).forEach(p=>errs.push(`${p.name} ist verletzt und nicht einsetzbar.`));
   if(sk<17) hints.push(`Nur ${sk} Feldspieler (regulär 17 + 2 U21-Plätze).`);
-  if(missing>0) errs.push(`Platz 18/19: ${missing===2?'beide Plätze sind':'ein Platz ist'} frei, obwohl ${availAll} nicht verletzte deutsche U21-Spieler verfügbar sind – diese Plätze müssen besetzt werden.`);
+  if(missing>0) errs.push(`Es ${missing===2?'fehlen zwei':'fehlt ein'} deutsche${missing===2?'':'r'} U21-Spieler im Spielbericht, obwohl ${availAll} nicht verletzte deutsche U21-Spieler verfügbar sind (beliebige Position, z. B. Platz 18/19).`);
   const regular=ps.filter(p=>p.pos!=='G'&&!isYoung(p)).length, youngN=sk-regular;
   if(regular>MAX_REGULAR) errs.push(`Zu viele reguläre Feldspieler (${regular}/${MAX_REGULAR}) – ${sk-MAX_REGULAR} Plätze müssen mit deutschen U23-Spielern besetzt sein.`);
   const freeSpots=Math.max(0,19-sk), availYoung=roster.filter(p=>p.pos!=='G'&&isYoung(p)&&!injured.has(p.id)&&!placed.has(p.id)).length;
@@ -322,7 +321,7 @@ $('#auto').onclick=()=>{ // einfacher Vorschlag unter Beachtung der Regeln
   const put=(slot,list)=>{for(const p of list){if(Object.values(lineup).includes(p.id))continue;if(!check(p,slot)){lineup[slot]=p.id;return}}};
   const G=rank.filter(p=>p.pos==='G'),Dd=rank.filter(p=>p.pos==='D'),F=rank.filter(p=>p.pos==='F');
   const ger=p=>isGer(p)&&isU21(p), byAge=(a,b)=>b.birth-a.birth;
-  put('U18',[...Dd,...F].filter(ger).sort(byAge));put('U19',[...F,...Dd].filter(ger).sort(byAge));
+  put('D3RD',[...Dd,...F].filter(ger).sort(byAge));put('X19',[...F,...Dd].filter(ger).sort(byAge));
   // Zwei weitere deutsche U23-Spieler für die „Rotationsplätze“ (max. 15 reguläre Lizenzen)
   const young=p=>isYoung(p)&&!injured.has(p.id);
   put('D3LD',Dd.filter(young).sort(byAge));put('F4RW',F.filter(young).sort(byAge));
