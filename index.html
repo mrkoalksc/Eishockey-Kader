@@ -50,12 +50,12 @@ body.view-st .lineup-only{display:none}
 .mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}.mgrp.eg{--c:#7b3fc4}.mgrp.og{--c:#b0278c}.mgrp .seg{flex-wrap:wrap}
 .mgrp .seg button.on{background:var(--c);border-color:var(--c)}
 .rinkhead{gap:12px;flex-wrap:wrap;display:flex;justify-content:space-between;margin-bottom:8px}
-.rink{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:400/480;border-radius:10px;overflow:hidden;background:#eaf3fb}
+.rink{position:relative;width:100%;max-width:640px;margin:0 auto;aspect-ratio:646/492;border-radius:10px;overflow:hidden;background:#eaf3fb}
 @media(prefers-color-scheme:dark){.rink{background:#1d2b3a}}
-.rink svg{position:absolute;inset:0;width:100%;height:100%}
+.rink img.bg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none}
 [hidden]{display:none!important}
-.tok{position:absolute;width:15%;transform:translate(-50%,-50%);text-align:center;font-size:11px;font-weight:600}
-.tok .dot{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.6vw,18px);font-weight:700;border:2px dashed #7a8aa0;background:rgba(255,255,255,.55);color:#51627a;cursor:default}
+.tok{position:absolute;width:9.5%;transform:translate(-50%,-50%);text-align:center;font-size:11px;font-weight:600}
+.tok .dot{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.5vw,19px);font-weight:700;border:2px dashed #51627a;background:rgba(255,255,255,.88);color:#334;;cursor:default}
 .tok.full .dot{border:3px solid var(--acc);border-style:solid;background:#fff;color:#0b2a5b;cursor:grab}
 .player.F{--c:var(--cF)}.player.D{--c:var(--cD)}.player.G{--c:var(--cG)}
 .player{border-left:5px solid var(--c)}.player .pos{color:var(--c)}.player.G{background:color-mix(in srgb,var(--cG) 9%,var(--bg))}
@@ -65,7 +65,7 @@ body.view-st .lineup-only{display:none}
 .tok.D.full .dot{border-color:var(--cD);background:color-mix(in srgb,var(--cD) 18%,#fff);color:#0d3b20}
 .tok.G.full .dot{border-color:#000;background:#111;color:#fff}.tok.over .dot{box-shadow:0 0 0 4px rgba(26,143,76,.5)}
 .tok .nm{margin-top:2px;background:rgba(0,0,0,.65);color:#fff;border-radius:4px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tok .pl{margin-top:2px;color:#51627a;font-size:10px}.tok .rm{position:absolute;top:-6px;right:-6px;border:0;background:var(--bad);color:#fff;border-radius:50%;width:18px;height:18px;padding:0;line-height:18px;font-size:11px;display:none}.tok.full:hover .rm{display:block}
+.tok .pl{margin-top:2px;color:#223;font-size:10px;background:rgba(255,255,255,.85);border-radius:4px;padding:0 3px;display:inline-block}.tok .rm{position:absolute;top:-6px;right:-6px;border:0;background:var(--bad);color:#fff;border-radius:50%;width:18px;height:18px;padding:0;line-height:18px;font-size:11px;display:none}.tok.full:hover .rm{display:block}
 #stPool .grp{margin:10px 0 4px;font-weight:700;font-size:12px;text-transform:uppercase;color:var(--c,var(--acc));border-bottom:2px solid var(--c,var(--acc))}
 .grp.G{--c:var(--cG)}.grp.D{--c:var(--cD)}.grp.F{--c:var(--cF)}
 @media(prefers-color-scheme:dark){.grp.G{--c:#ddd}}
@@ -414,10 +414,10 @@ function renderST(){
   $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler ${stMode.startsWith('eg')?'(eigener Torhüter gezogen)':'+ Torhüter'}`;
   // Rink
   const rink=$('#rink');
-  const pp=M.zone==='Angriffsdrittel';rink.innerHTML=rinkSvg(pp);
+  const pp=M.zone==='Angriffsdrittel';rink.innerHTML=`<img class="bg" src="data/rink/${pp?'pp':'pk'}.jpg" alt="Eisfläche" draggable="false">`;
   form.p.forEach(([fx,fy,lab],i)=>{
     const t=document.createElement('div'),pid=cur.assign[i],p=pid&&byId(pid);
-    t.className='tok'+(p?' full '+p.pos:'');t.style.left=((20+fy*360)/4)+'%';t.style.top=((pp?450-fx*400:30+fx*400)/4.8)+'%';
+    t.className='tok'+(p?' full '+p.pos:'');t.style.left=((20+fy*606)/6.46)+'%';t.style.top=((pp?490-fx*400:3+fx*399)/4.92)+'%';
     t.innerHTML=p?`<div class="dot">${esc(p.num||p.pos)}</div><div class="nm">${esc(p.name.split(' ').slice(-1)[0])}</div><button class="rm" title="Entfernen">✕</button>`:`<div class="dot">${i+1}</div><div class="pl">${esc(lab)}</div>`;
     if(p){t.draggable=true;t.addEventListener('dragstart',e=>{hideTip();e.dataTransfer.setData('text/plain',p.id);drag=p.id});t.addEventListener('dragend',()=>{drag=null});
       t.addEventListener('mouseenter',()=>showTip(p,t));t.addEventListener('mouseleave',hideTip);t.querySelector('.rm').onclick=ev=>{ev.stopPropagation();hideTip();stRemove(p.id)};}
@@ -443,16 +443,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   $('#v-lineup').hidden=view!=='lineup';$('#v-st').hidden=view!=='st';document.body.classList.toggle('view-st',view==='st');hideTip();
   if(view==='st')renderST();
 });
-// Hochformat: Überzahl = Tor oben / Blaue Linie unten, Unterzahl = Tor unten / Blaue Linie oben (vertikal gespiegelt)
-const rinkSvg=pp=>`<svg viewBox="0 0 400 480" preserveAspectRatio="none"><g fill="none"${pp?'':' transform="matrix(1 0 0 -1 0 480)"'}>
-<path d="M6 480V46Q6 6 46 6H354Q394 6 394 46V480" stroke="#7a8aa0" stroke-width="5"/>
-<path d="M0 450H400" stroke="#2f6fd6" stroke-width="12"/>
-<path d="M14 50H386" stroke="#d33" stroke-width="3"/>
-<path d="M160 50A40 40 0 0 0 240 50Z" fill="#8ec5ff" fill-opacity=".5" stroke="#d33" stroke-width="2"/>
-<rect x="172" y="28" width="56" height="22" stroke="#d33" stroke-width="3" fill="#fff" fill-opacity=".6"/>
-<circle cx="100" cy="150" r="50" stroke="#d33" stroke-width="2"/><circle cx="300" cy="150" r="50" stroke="#d33" stroke-width="2"/>
-<circle cx="100" cy="150" r="6" fill="#d33" stroke="none"/><circle cx="300" cy="150" r="6" fill="#d33" stroke="none"/>
-</g><text x="12" y="${pp?440:48}" font-size="13" fill="#2f6fd6" font-family="sans-serif">Blaue Linie</text><text x="388" y="${pp?42:446}" text-anchor="end" font-size="13" fill="#d33" font-family="sans-serif">Torlinie</text></svg>`;
+// Hintergrund: data/rink/pp.jpg (Überzahl, Tor oben) bzw. pk.jpg (Unterzahl, Tor unten) – Zuschnitt an der Blauen Linie, aus dem Eisflächen-Bild gedreht
 
 fillTeams();load();render();
 </script>
