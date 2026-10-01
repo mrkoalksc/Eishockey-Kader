@@ -45,9 +45,9 @@ body.view-st .lineup-only{display:none}
 .stctl{flex-direction:column;align-items:stretch}.strow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:10px;border-top:1px solid var(--line)}
 #stMode{display:flex;flex-wrap:wrap;gap:12px}.mgrp{border:1px solid var(--c);border-radius:8px;padding:6px 8px 8px;background:color-mix(in srgb,var(--c) 8%,transparent)}
 .mgrp .mlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);margin-bottom:4px}
-.mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}
+.mgrp.pp{--c:#1a8f4c}.mgrp.pk{--c:#c62828}.mgrp.ot{--c:#e08a00}.mgrp.eg{--c:#7b3fc4}.mgrp .seg{flex-wrap:wrap}
 .mgrp .seg button.on{background:var(--c);border-color:var(--c)}
-.rinkhead{display:flex;justify-content:space-between;margin-bottom:8px}
+.rinkhead{gap:12px;flex-wrap:wrap;display:flex;justify-content:space-between;margin-bottom:8px}
 .rink{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:400/480;border-radius:10px;overflow:hidden;background:#eaf3fb}
 @media(prefers-color-scheme:dark){.rink{background:#1d2b3a}}
 .rink svg{position:absolute;inset:0;width:100%;height:100%}
@@ -295,28 +295,48 @@ $('#auto').onclick=()=>{ // einfacher Vorschlag unter Beachtung der Regeln
 
 // ===== Überzahl / Unterzahl =====
 // Koordinaten: x 0 = Blaue Linie … 1 = Bande hinter dem Tor, y 0 = oben … 1 = unten (Draufsicht, Tor rechts)
+const F5PP={
+  '1-3-1':{p:[[.14,.5,'Point'],[.45,.13,'Half Wall L'],[.52,.5,'Slot'],[.45,.87,'Half Wall R'],[.8,.5,'Torraum']]},
+  '2-1-2':{p:[[.14,.27,'Point L'],[.14,.73,'Point R'],[.52,.5,'Slot'],[.8,.17,'Low L'],[.8,.83,'Low R']]},
+  '3-2 (Umbrella)':{p:[[.14,.5,'Point'],[.3,.12,'Flügel L'],[.3,.88,'Flügel R'],[.78,.3,'Low L'],[.78,.7,'Low R']]},
+  'Overload':{p:[[.14,.5,'Point'],[.45,.14,'Half Wall'],[.8,.14,'Low Wall'],[.52,.5,'Slot'],[.84,.55,'Torraum']]}};
+const F5PP3={
+  '1-3-1':F5PP['1-3-1'],'2-1-2':F5PP['2-1-2'],
+  '2-3 (Dreieck)':{p:[[.2,.3,'Point L'],[.2,.7,'Point R'],[.5,.1,'Wall L'],[.55,.5,'Slot'],[.5,.9,'Wall R']]}};
+const F4PK={
+  'Box (2-2)':{p:[[.38,.3,'Front L'],[.38,.7,'Front R'],[.7,.3,'Back L'],[.7,.7,'Back R']]},
+  'Diamond (1-2-1)':{p:[[.3,.5,'Spitze'],[.55,.25,'Flügel L'],[.55,.75,'Flügel R'],[.8,.5,'Torraum']]},
+  'Wedge+1 (1-1-2)':{p:[[.3,.5,'Spitze'],[.58,.5,'Slot'],[.78,.2,'Low L'],[.78,.8,'Low R']]}};
+const F3PK={
+  'Dreieck (1-2)':{p:[[.45,.5,'Slot'],[.72,.27,'Low L'],[.72,.73,'Low R']]},
+  'Umgekehrtes Dreieck (2-1)':{p:[[.4,.3,'Front L'],[.4,.7,'Front R'],[.78,.5,'Torraum']]},
+  'Linie (Sperrriegel)':{p:[[.6,.2,'Links'],[.6,.5,'Mitte'],[.6,.8,'Rechts']]}};
+const F3OT={
+  'Dreieck (1-2)':{p:[[.22,.5,'Point'],[.6,.25,'Flügel L'],[.6,.75,'Flügel R']]},
+  'Umgekehrtes Dreieck (2-1)':{p:[[.2,.3,'Point L'],[.2,.7,'Point R'],[.6,.5,'Slot']]},
+  'Breit (Spread)':{p:[[.3,.12,'Wall L'],[.2,.5,'Mitte'],[.3,.88,'Wall R']]}};
+const F4OT={
+  'Diamond (1-2-1)':{p:[[.16,.5,'Point'],[.45,.15,'Wall L'],[.45,.85,'Wall R'],[.78,.5,'Torraum']]},
+  'Box (2-2)':{p:[[.18,.3,'Point L'],[.18,.7,'Point R'],[.6,.22,'Low L'],[.6,.78,'Low R']]},
+  '1-3 (Umbrella)':{p:[[.14,.5,'Point'],[.45,.15,'Wall L'],[.55,.5,'Slot'],[.45,.85,'Wall R']]}};
+const F6={
+  '1-3-2':{p:[[.14,.5,'Point'],[.45,.13,'Wall L'],[.5,.5,'Slot'],[.45,.87,'Wall R'],[.8,.25,'Low L'],[.8,.75,'Low R']]},
+  '2-2-2':{p:[[.14,.28,'Point L'],[.14,.72,'Point R'],[.5,.15,'Wall L'],[.5,.85,'Wall R'],[.8,.3,'Low L'],[.8,.7,'Low R']]},
+  '3-1-2 (Umbrella)':{p:[[.14,.2,'Point L'],[.1,.5,'Point M'],[.14,.8,'Point R'],[.52,.5,'Slot'],[.8,.25,'Low L'],[.8,.75,'Low R']]}};
+// g = Gruppe, s = Kurzlabel, zone: Angriffsdrittel = Tor oben, sonst Defensivdrittel
 const MODES = {
-  pp54:{label:'Überzahl 5 gegen 4',title:'Powerplay 5-4',zone:'Angriffsdrittel',n:5,forms:{
-    '1-3-1':{p:[[.14,.5,'Point'],[.45,.13,'Half Wall L'],[.52,.5,'Slot'],[.45,.87,'Half Wall R'],[.8,.5,'Torraum']]},
-    '2-1-2':{p:[[.14,.27,'Point L'],[.14,.73,'Point R'],[.52,.5,'Slot'],[.8,.17,'Low L'],[.8,.83,'Low R']]},
-    '3-2 (Umbrella)':{p:[[.14,.5,'Point'],[.3,.12,'Flügel L'],[.3,.88,'Flügel R'],[.78,.3,'Low L'],[.78,.7,'Low R']]},
-    'Overload':{p:[[.14,.5,'Point'],[.45,.14,'Half Wall'],[.8,.14,'Low Wall'],[.52,.5,'Slot'],[.84,.55,'Torraum']]}}},
-  pp53:{label:'Überzahl 5 gegen 3',title:'Powerplay 5-3',zone:'Angriffsdrittel',n:5,forms:{
-    '1-3-1':{p:[[.14,.5,'Point'],[.45,.13,'Half Wall L'],[.52,.5,'Slot'],[.45,.87,'Half Wall R'],[.8,.5,'Torraum']]},
-    '2-1-2':{p:[[.14,.27,'Point L'],[.14,.73,'Point R'],[.52,.5,'Slot'],[.8,.17,'Low L'],[.8,.83,'Low R']]},
-    '2-3 (Dreieck)':{p:[[.2,.3,'Point L'],[.2,.7,'Point R'],[.5,.1,'Wall L'],[.55,.5,'Slot'],[.5,.9,'Wall R']]}}},
-  pk45:{label:'Unterzahl 4 gegen 5',title:'Penalty Kill 4-5',zone:'Defensivdrittel',n:4,forms:{
-    'Box (2-2)':{p:[[.38,.3,'Front L'],[.38,.7,'Front R'],[.7,.3,'Back L'],[.7,.7,'Back R']]},
-    'Diamond (1-2-1)':{p:[[.3,.5,'Spitze'],[.55,.25,'Flügel L'],[.55,.75,'Flügel R'],[.8,.5,'Torraum']]},
-    'Wedge+1 (1-1-2)':{p:[[.3,.5,'Spitze'],[.58,.5,'Slot'],[.78,.2,'Low L'],[.78,.8,'Low R']]}}},
-  pk35:{label:'Unterzahl 3 gegen 5',title:'Penalty Kill 3-5',zone:'Defensivdrittel',n:3,forms:{
-    'Dreieck (1-2)':{p:[[.45,.5,'Slot'],[.72,.27,'Low L'],[.72,.73,'Low R']]},
-    'Umgekehrtes Dreieck (2-1)':{p:[[.4,.3,'Front L'],[.4,.7,'Front R'],[.78,.5,'Torraum']]},
-    'Linie (Sperrriegel)':{p:[[.6,.2,'Links'],[.6,.5,'Mitte'],[.6,.8,'Rechts']]}}},
-  ot33:{label:'Overtime 3 gegen 3',title:'Overtime 3-3',zone:'Angriffsdrittel',n:3,forms:{
-    'Dreieck (1-2)':{p:[[.22,.5,'Point'],[.6,.25,'Flügel L'],[.6,.75,'Flügel R']]},
-    'Umgekehrtes Dreieck (2-1)':{p:[[.2,.3,'Point L'],[.2,.7,'Point R'],[.6,.5,'Slot']]},
-    'Breit (Spread)':{p:[[.3,.12,'Wall L'],[.2,.5,'Mitte'],[.3,.88,'Wall R']]}}}
+  pp54:{g:'pp',s:'5 gegen 4',title:'Powerplay 5-4',zone:'Angriffsdrittel',n:5,forms:F5PP},
+  pp53:{g:'pp',s:'5 gegen 3',title:'Powerplay 5-3',zone:'Angriffsdrittel',n:5,forms:F5PP3},
+  pk45:{g:'pk',s:'4 gegen 5',title:'Penalty Kill 4-5',zone:'Defensivdrittel',n:4,forms:F4PK},
+  pk35:{g:'pk',s:'3 gegen 5',title:'Penalty Kill 3-5',zone:'Defensivdrittel',n:3,forms:F3PK},
+  ot33:{g:'ot',s:'3 gegen 3',title:'Overtime 3-3',zone:'Angriffsdrittel',n:3,forms:F3OT},
+  ot43:{g:'ot',s:'4 gegen 3 (Überzahl)',title:'Overtime 4-3 Überzahl',zone:'Angriffsdrittel',n:4,forms:F4OT},
+  ot53:{g:'ot',s:'5 gegen 3 (Überzahl)',title:'Overtime 5-3 Überzahl',zone:'Angriffsdrittel',n:5,forms:F5PP3},
+  ot34:{g:'ot',s:'3 gegen 4 (Unterzahl)',title:'Overtime 3-4 Unterzahl',zone:'Defensivdrittel',n:3,forms:F3PK},
+  ot35:{g:'ot',s:'3 gegen 5 (Unterzahl)',title:'Overtime 3-5 Unterzahl',zone:'Defensivdrittel',n:3,forms:F3PK},
+  eg65:{g:'eg',s:'6 gegen 5',title:'Gezogener Torhüter 6-5',zone:'Angriffsdrittel',n:6,forms:F6},
+  eg64:{g:'eg',s:'6 gegen 4',title:'Gezogener Torhüter 6-4',zone:'Angriffsdrittel',n:6,forms:F6},
+  eg63:{g:'eg',s:'6 gegen 3',title:'Gezogener Torhüter 6-3',zone:'Angriffsdrittel',n:6,forms:F6}
 };
 let stMode='pp54', stUnit=1;
 const stCfg=()=>{const m=(st[stMode]=st[stMode]||{});const u=(m['u'+stUnit]=m['u'+stUnit]||{assign:{}});const f=Object.keys(MODES[stMode].forms);if(!u.form||!MODES[stMode].forms[u.form])u.form=f[0];return u};
@@ -338,16 +358,16 @@ function renderST(){
   const M=MODES[stMode], cur=stCfg(), form=M.forms[cur.form];
   const seg=(el,items,sel,fn)=>{el.innerHTML='';items.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;if(k==sel)b.className='on';b.onclick=()=>fn(k);el.appendChild(b)})};
   const modeBox=$('#stMode');modeBox.innerHTML='';
-  [['pp','Überzahl'],['pk','Unterzahl'],['ot','Overtime']].forEach(([g,name])=>{
-    const ks=Object.keys(MODES).filter(k=>k.startsWith(g));
+  [['pp','Überzahl'],['pk','Unterzahl'],['ot','Overtime'],['eg','Gezogener Torhüter']].forEach(([g,name])=>{
+    const ks=Object.keys(MODES).filter(k=>MODES[k].g===g);
     const grp=document.createElement('div');grp.className='mgrp '+g;grp.innerHTML=`<div class="mlab">${name}</div><div class="seg"></div>`;
-    seg(grp.querySelector('.seg'),ks.map(k=>[k,MODES[k].label.replace(/^(Überzahl|Unterzahl|Overtime) /,'')]),stMode,k=>{stMode=k;renderST()});
+    seg(grp.querySelector('.seg'),ks.map(k=>[k,MODES[k].s]),stMode,k=>{stMode=k;renderST()});
     modeBox.appendChild(grp);
   });
   seg($('#stUnit'),[[1,'Einheit 1'],[2,'Einheit 2']],stUnit,k=>{stUnit=k;renderST()});
   seg($('#stForm'),Object.keys(M.forms).map(k=>[k,k]),cur.form,k=>{cur.form=k;save();renderST()});
   $('#stTitle').textContent=`${M.title} · Einheit ${stUnit} · ${cur.form}`;
-  $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler + Torhüter`;
+  $('#stZone').textContent=`${M.zone} (Draufsicht) · ${M.n} Feldspieler ${stMode.startsWith('eg')?'(Torhüter gezogen)':'+ Torhüter'}`;
   // Rink
   const rink=$('#rink');
   const pp=M.zone==='Angriffsdrittel';rink.innerHTML=rinkSvg(pp);
