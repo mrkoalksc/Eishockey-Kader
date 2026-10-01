@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DEL2 Reihen-Builder</title>
 <style>
-:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2430;--mut:#667;--line:#d5dbe3;--acc:#0b5ed7;--ok:#1a8f4c;--bad:#c62828;--imp:#e08a00}
-@media(prefers-color-scheme:dark){:root{--bg:#10151c;--card:#1a212b;--ink:#e8edf3;--mut:#9aa6b4;--line:#2d3745;--acc:#5b9cff}}
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2430;--mut:#667;--line:#d5dbe3;--acc:#0b5ed7;--ok:#1a8f4c;--bad:#c62828;--imp:#e08a00;--cF:#1565c0;--cD:#1a8f4c;--cG:#111}
+@media(prefers-color-scheme:dark){:root{--bg:#10151c;--card:#1a212b;--ink:#e8edf3;--mut:#9aa6b4;--line:#2d3745;--acc:#5b9cff;--cF:#4d94ff;--cD:#35c26b;--cG:#000}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,sans-serif}
 header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--line)}
 h1{font-size:18px;margin:0}select,button,input,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
@@ -20,7 +20,7 @@ h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;c
 .player{display:flex;gap:6px;align-items:center;padding:5px 8px;margin:3px 0;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:grab;user-select:none}
 .player.dragging{opacity:.4}.player .pos{font-weight:700;width:18px;color:var(--acc)}.player .meta{margin-left:auto;color:var(--mut);font-size:12px;white-space:nowrap}
 .tag{font-size:11px;padding:0 5px;border-radius:4px;border:1px solid var(--line)}.tag.imp{color:var(--imp);border-color:var(--imp)}.tag.u21{color:var(--ok);border-color:var(--ok)}
-#pool .grp{margin:12px 0 4px;padding:4px 0;border-bottom:2px solid var(--acc);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--acc);position:sticky;top:0;background:var(--card);z-index:1}#pool .grp:first-child{margin-top:0}
+#pool .grp{margin:12px 0 4px;padding:4px 0;border-bottom:2px solid var(--c,var(--acc));font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--c,var(--acc));position:sticky;top:0;background:var(--card);z-index:1}#pool .grp:first-child{margin-top:0}
 #pool{max-height:65vh;overflow:auto;min-height:60px}
 .lines{display:grid;gap:10px}.row{display:grid;gap:8px;grid-template-columns:70px repeat(3,1fr);align-items:stretch}
 .row.d{grid-template-columns:70px repeat(2,1fr)}.row.g{grid-template-columns:70px repeat(2,1fr)}.row.u{grid-template-columns:70px repeat(2,1fr)}
@@ -55,10 +55,18 @@ body.view-st .lineup-only{display:none}
 .tok{position:absolute;width:15%;transform:translate(-50%,-50%);text-align:center;font-size:11px;font-weight:600}
 .tok .dot{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(11px,1.6vw,18px);font-weight:700;border:2px dashed #7a8aa0;background:rgba(255,255,255,.55);color:#51627a;cursor:default}
 .tok.full .dot{border:3px solid var(--acc);border-style:solid;background:#fff;color:#0b2a5b;cursor:grab}
-.tok.D.full .dot{border-color:#c62828}.tok.over .dot{box-shadow:0 0 0 4px rgba(26,143,76,.5)}
+.player.F{--c:var(--cF)}.player.D{--c:var(--cD)}.player.G{--c:var(--cG)}
+.player{border-left:5px solid var(--c)}.player .pos{color:var(--c)}.player.G{background:color-mix(in srgb,var(--cG) 9%,var(--bg))}
+.player.G .pos{background:var(--cG);color:#fff;border-radius:4px;text-align:center;width:20px}
+@media(prefers-color-scheme:dark){.player.G{border-left-color:#fff;border-right:0}.player.G .pos{outline:1px solid #888}}
+.tok.F.full .dot{border-color:var(--cF);background:color-mix(in srgb,var(--cF) 18%,#fff);color:#0b2a5b}
+.tok.D.full .dot{border-color:var(--cD);background:color-mix(in srgb,var(--cD) 18%,#fff);color:#0d3b20}
+.tok.G.full .dot{border-color:#000;background:#111;color:#fff}.tok.over .dot{box-shadow:0 0 0 4px rgba(26,143,76,.5)}
 .tok .nm{margin-top:2px;background:rgba(0,0,0,.65);color:#fff;border-radius:4px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tok .pl{margin-top:2px;color:#51627a;font-size:10px}.tok .rm{position:absolute;top:-6px;right:-6px;border:0;background:var(--bad);color:#fff;border-radius:50%;width:18px;height:18px;padding:0;line-height:18px;font-size:11px;display:none}.tok.full:hover .rm{display:block}
-#stPool .grp{margin:10px 0 4px;font-weight:700;font-size:12px;text-transform:uppercase;color:var(--acc);border-bottom:2px solid var(--acc)}
+#stPool .grp{margin:10px 0 4px;font-weight:700;font-size:12px;text-transform:uppercase;color:var(--c,var(--acc));border-bottom:2px solid var(--c,var(--acc))}
+.grp.G{--c:var(--cG)}.grp.D{--c:var(--cD)}.grp.F{--c:var(--cF)}
+@media(prefers-color-scheme:dark){.grp.G{--c:#ddd}}
 #stPool .hurt{display:none}#stPool .player.used{opacity:.5}.tag.unit{color:var(--acc);border-color:var(--acc)}
 footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px 20px}
 @media print{header,#side{display:none}main{display:block}}
@@ -200,7 +208,7 @@ function canDrop(p,slotId){
 function unplace(pid){for(const k in lineup) if(lineup[k]===pid) delete lineup[k]; save(); render();}
 
 function playerEl(p, removable){
-  const e=document.createElement('div'); const inj=injured.has(p.id); e.className='player'+(inj?' injured':''); e.draggable=!inj; e.dataset.id=p.id;
+  const e=document.createElement('div'); const inj=injured.has(p.id); e.className='player '+p.pos+(inj?' injured':''); e.draggable=!inj; e.dataset.id=p.id;
   const imp=!isGer(p);
   e.innerHTML=`<span class="pos">${p.pos}</span><span>${p.num?'#'+p.num+' ':''}${esc(p.name)}</span>
    <span class="meta">${imp?'<span class="tag imp">Import</span> ':''}${isGer(p)&&isU21(p)?'<span class="tag u21">U21</span> ':''}${flag(p)} ${p.birth||''}</span>${inj?'<span class="tag inj">verletzt</span>':''}<button class="hurt" title="${inj?'Wieder fit melden':'Als verletzt markieren'}">${inj?'✚':'🩹'}</button>${removable?'<button class="x" title="Entfernen">✕</button>':''}`;
@@ -242,7 +250,7 @@ function render(){
   const free=roster.filter(p=>!placed.has(p.id)).sort((a,b)=>order[a.pos]-order[b.pos]||injured.has(a.id)-injured.has(b.id)||a.name.localeCompare(b.name));
   const GROUP={G:'Torhüter',D:'Verteidiger',F:'Stürmer'}; let lastPos=null;
   free.forEach(p=>{
-    if(p.pos!==lastPos){lastPos=p.pos;const n=free.filter(x=>x.pos===p.pos).length;const g=document.createElement('div');g.className='grp';g.textContent=`${GROUP[p.pos]} (${n})`;pool.appendChild(g);}
+    if(p.pos!==lastPos){lastPos=p.pos;const n=free.filter(x=>x.pos===p.pos).length;const g=document.createElement('div');g.className='grp '+p.pos;g.textContent=`${GROUP[p.pos]} (${n})`;pool.appendChild(g);}
     const e=playerEl(p,false);const x=document.createElement('button');x.className='x';x.textContent='🗑';x.title='Aus Kader löschen';x.onclick=()=>{if(confirm(p.name+' aus dem Kader löschen?')){roster=roster.filter(r=>r.id!==p.id);save(true);render()}};e.appendChild(x);pool.appendChild(e)});
   $('#poolCount').textContent=roster.length;
   pool.ondragover=e=>e.preventDefault(); pool.ondrop=e=>{e.preventDefault();if(drag)unplace(drag)};
@@ -393,7 +401,7 @@ function renderST(){
   if(!inLine.length) pool.innerHTML='<p class="rules">Noch keine Feldspieler in der Aufstellung. Stelle zuerst im Reiter „Aufstellung“ Spieler auf.</p>';
   [['F','Stürmer'],['D','Verteidiger']].forEach(([pos,name])=>{
     const list=inLine.filter(p=>p.pos===pos);if(!list.length)return;
-    const g=document.createElement('div');g.className='grp';g.textContent=`${name} (${list.length})`;pool.appendChild(g);
+    const g=document.createElement('div');g.className='grp '+pos;g.textContent=`${name} (${list.length})`;pool.appendChild(g);
     list.forEach(p=>{const e=playerEl(p,false);if(unitOf[p.id]){e.classList.add('used');e.querySelector('.meta').insertAdjacentHTML('afterbegin',`<span class="tag unit">E${unitOf[p.id]}</span> `)}pool.appendChild(e)});
   });
   pool.ondragover=e=>e.preventDefault();pool.ondrop=e=>{e.preventDefault();if(drag)stRemove(drag)};
