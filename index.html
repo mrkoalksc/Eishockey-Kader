@@ -34,7 +34,7 @@ h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;c
 #msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bad);color:#fff;padding:8px 14px;border-radius:8px;display:none;max-width:90vw;z-index:9}
 details{margin-top:10px}textarea{width:100%;height:110px}
 .rules{color:var(--mut);font-size:12px;margin:8px 0 0}
-.flag{font-size:16px;line-height:1;white-space:nowrap;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
+.flag{white-space:nowrap;display:inline-flex;gap:3px;vertical-align:middle}.flag .fi{height:13px;width:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .tip{position:fixed;z-index:20;width:270px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none;pointer-events:none;gap:10px}
 .tip.show{display:flex}.tip .ph{width:84px;height:104px;flex:none;border-radius:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
 .tip .ph img,.tip .ph svg{width:100%;height:100%;object-fit:cover}.tip .ph svg{fill:var(--mut)}
@@ -95,11 +95,11 @@ rows[rows.length-1].cls='f';
 const slotById = Object.fromEntries(SLOTS.map(s=>[s.id,s]));
 
 const ISO2={GER:'DE',CAN:'CA',USA:'US',CZE:'CZ',SVK:'SK',SWE:'SE',FIN:'FI',SUI:'CH',RUS:'RU',LAT:'LV',LTU:'LT',EST:'EE',DEN:'DK',NOR:'NO',POL:'PL',HUN:'HU',AUT:'AT',FRA:'FR',ITA:'IT',SLO:'SI',JPN:'JP',KOR:'KR',KAZ:'KZ',BLR:'BY',UKR:'UA',GBR:'GB',NED:'NL',BEL:'BE',CRO:'HR',ROU:'RO',SRB:'RS',LUX:'LU',ESP:'ES',AUS:'AU',CHN:'CN'};
-const emoji=c=>{const a=ISO2[(c||'').toUpperCase()];return a?String.fromCodePoint(...[...a].map(x=>0x1F1E6+x.charCodeAt(0)-65)):''};
+const flagImg=c=>{const a=ISO2[(c||'').toUpperCase()];return a?`<img class="fi" src="data/flags/${a.toLowerCase()}.svg" alt="${esc(c)}">`:''};
 // Flagge(n): Deutsche mit ausländischem Geburtsland bekommen beide Flaggen nebeneinander (DE, Geburtsland)
 function flag(p){
-  const n=emoji(p.nat); if(!n) return esc(p.nat||'');
-  const b=p.born&&p.born!==p.nat?emoji(p.born):'';
+  const n=flagImg(p.nat); if(!n) return esc(p.nat||'');
+  const b=p.born&&p.born!==p.nat?flagImg(p.born):'';
   if(/^(GER|DE|DEU)$/i.test(p.nat)&&b) return `<span class="flag" title="Deutschland / geboren in ${esc(p.born)}">${n}${b}</span>`;
   return `<span class="flag" title="${esc(p.nat)}">${n}</span>`;
 }
