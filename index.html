@@ -97,7 +97,7 @@ footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px
   <section>
     <div class="stats" id="stats"></div>
     <div class="card lines" id="lines"></div>
-    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · Plätze 18 und 19 nur für deutsche U21-Spieler · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht. U21 = Geburtsjahr ≥ <span id="u21y"></span>. Nationalität „GER“ gilt als deutsch.</p>
+    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · Plätze 18 und 19 nur für deutsche U21-Spieler (3. Verteidigerpaar = Platz 17 + Platz 18) · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht. U21 = Geburtsjahr ≥ <span id="u21y"></span>. Nationalität „GER“ gilt als deutsch.</p>
   </section>
 </main>
 <main id="v-st" hidden>
@@ -139,9 +139,9 @@ rows.push({cls:'g',label:'Torhüter',ids:['G1','G2']});
 for(let l=1;l<=4;l++){const ids=['LW','C','RW'].map(p=>`F${l}${p}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LW','C','RW'][i]}));rows.push({cls:'f',label:`Reihe ${l}`,ids});}
 for(let p=1;p<=2;p++){const ids=['LD','RD'].map(x=>`D${p}${x}`);ids.forEach((id,i)=>SLOTS.push({id,kind:'S',label:['LD','RD'][i]}));rows.push({cls:'d',label:`Paar ${p}`,ids});}
 SLOTS.push({id:'D3LD',kind:'S',label:'LD (Paar 3)'});
-SLOTS.push({id:'U18',kind:'U',label:'Platz 18 · U21 DE'},{id:'U19',kind:'U',label:'Platz 19 · U21 DE'});
-rows.push({cls:'u',label:'Pl. 3 / 18–19',ids:['D3LD','U18','U19']});
-rows[rows.length-1].cls='f';
+SLOTS.push({id:'U18',kind:'U',label:'RD (Paar 3) · Platz 18 · U21 DE'},{id:'U19',kind:'U',label:'Platz 19 · U21 DE · Extra'});
+rows.push({cls:'d',label:'Paar 3',ids:['D3LD','U18']});
+rows.push({cls:'d',label:'Extra',ids:['U19']});
 const slotById = Object.fromEntries(SLOTS.map(s=>[s.id,s]));
 
 const ISO2={GER:'DE',CAN:'CA',USA:'US',CZE:'CZ',SVK:'SK',SWE:'SE',FIN:'FI',SUI:'CH',RUS:'RU',LAT:'LV',LTU:'LT',EST:'EE',DEN:'DK',NOR:'NO',POL:'PL',HUN:'HU',AUT:'AT',FRA:'FR',ITA:'IT',SLO:'SI',JPN:'JP',KOR:'KR',KAZ:'KZ',BLR:'BY',UKR:'UA',GBR:'GB',NED:'NL',BEL:'BE',CRO:'HR',ROU:'RO',SRB:'RS',LUX:'LU',ESP:'ES',AUS:'AU',CHN:'CN'};
@@ -294,7 +294,7 @@ $('#auto').onclick=()=>{ // einfacher Vorschlag unter Beachtung der Regeln
   const put=(slot,list)=>{for(const p of list){if(Object.values(lineup).includes(p.id))continue;if(!check(p,slot)){lineup[slot]=p.id;return}}};
   const G=rank.filter(p=>p.pos==='G'),Dd=rank.filter(p=>p.pos==='D'),F=rank.filter(p=>p.pos==='F');
   const ger=p=>isGer(p)&&isU21(p);
-  ['U18','U19'].forEach(s=>put(s,[...F,...Dd].filter(ger).sort((a,b)=>a.birth-b.birth)));
+  put('U18',[...Dd,...F].filter(ger).sort((a,b)=>a.birth-b.birth));put('U19',[...F,...Dd].filter(ger).sort((a,b)=>a.birth-b.birth));
   put('G1',G);put('G2',G);
   SLOTS.filter(s=>/^F/.test(s.id)).forEach(s=>put(s.id,F));
   SLOTS.filter(s=>/^D/.test(s.id)).forEach(s=>put(s.id,Dd));
