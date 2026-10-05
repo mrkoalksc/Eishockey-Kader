@@ -101,7 +101,7 @@ footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px
     <div id="valid" class="valid"></div>
     <div class="stats" id="stats"></div>
     <div class="card lines" id="lines"></div>
-    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · zwei der Plätze (18/19) ausschließlich für deutsche U21-Spieler – diese dürfen an beliebiger Stelle in der Aufstellung stehen; gibt es keine fitten/verfügbaren, bleiben die Plätze leer und das Team tritt mit z. B. nur 17 Feldspielern an · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht · max. 15 Spieler mit regulärer Lizenz (alle Ausländer und deutsche Ü24-Spieler; Torhüter erst ab Ü26), alle weiteren Spieler deutsche U24-Förderspieler (Jg. ≥ <span id="u24y"></span>, Torhüter Jg. ≥ <span id="u26y"></span>). U21 = Geburtsjahr ≥ <span id="u21y"></span> (Altersgrenzen 2026/27). Nationalität „GER“ gilt als deutsch.</p>
+    <p class="rules">Regeln DEL2: max. 19 Feldspieler + 2 Torhüter · zwei der Plätze (18/19) ausschließlich für deutsche U21-Spieler – diese dürfen an beliebiger Stelle in der Aufstellung stehen; gibt es keine fitten/verfügbaren, bleiben die Plätze leer und das Team tritt mit z. B. nur 17 Feldspielern an · max. 4 Importspieler (Nicht-Deutsche) gleichzeitig im Spielbericht · max. 16 Feldspieler über 23 (U24-Spieler füllen den Kader auf, müssen aber nicht eingesetzt werden) · max. 15 Spieler mit regulärer Lizenz (alle Ausländer und deutsche Ü24-Spieler; Torhüter erst ab Ü26), alle weiteren Spieler deutsche U24-Förderspieler (Jg. ≥ <span id="u24y"></span>, Torhüter Jg. ≥ <span id="u26y"></span>). U21 = Geburtsjahr ≥ <span id="u21y"></span> (Altersgrenzen 2026/27). Nationalität „GER“ gilt als deutsch.</p>
   </section>
 </main>
 <main id="v-st" hidden>
@@ -127,7 +127,7 @@ footer.credit{text-align:center;color:var(--mut);font-size:12px;padding:8px 16px
 <script src="data/del2.js"></script>
 <script>
 if(!window.DEL2_DATA){document.body.insertAdjacentHTML('afterbegin','<p style="padding:16px;color:#c62828">Spielerdaten fehlen: <b>data/del2.js</b> konnte nicht geladen werden. Der Ordner <code>data/</code> muss neben <code>index.html</code> liegen.</p>');throw new Error('DEL2_DATA fehlt');}
-const D = window.DEL2_DATA, U21_MIN = D.seasonStartYear - 20, MAX_IMPORT = 4, U24_MIN = D.seasonStartYear - 23, U26G_MIN = D.seasonStartYear - 25, MAX_REGULAR = 15;
+const D = window.DEL2_DATA, U21_MIN = D.seasonStartYear - 20, MAX_IMPORT = 4, U24_MIN = D.seasonStartYear - 23, U26G_MIN = D.seasonStartYear - 25, MAX_REGULAR = 15, MAX_OVER23 = 16;
 const $ = s => document.querySelector(s);
 const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let customTeams = store.get('del2.teams', []);
@@ -163,6 +163,8 @@ const isU21 = p => p.birth && p.birth >= U21_MIN;
 // Förderspieler (keine reguläre Lizenz) = deutsche U24 (Jg. ≥ U24_MIN) bzw. deutsche U26-Torhüter (Jg. ≥ U26G_MIN)
 const isYoung = p => isGer(p) && p.birth && p.birth >= (p.pos==='G' ? U26G_MIN : U24_MIN);
 const isRegular = p => !isYoung(p);
+// Ü23-Beschränkung: max. 16 Feldspieler, die älter als 23 sind (nationalitätsunabhängig; U24-Spieler zählen nicht mit)
+const isOlder = p => p.pos!=='G' && !(p.birth && p.birth >= U24_MIN);
 const normPos = s => { s=(s||'').toUpperCase(); return s.startsWith('G')?'G':/^(D|LD|RD)/.test(s)?'D':'F'; };
 const byId = id => roster.find(p=>p.id===id);
 
@@ -188,6 +190,7 @@ function check(p, slotId, lin=lineup){
   const others = Object.entries(lin).filter(([k,id])=>id!==p.id && k!==slotId).map(([,id])=>byId(id));
   if(!isGer(p) && others.filter(o=>!isGer(o)).length>=MAX_IMPORT) return 'Maximal 4 Importspieler im Spielbericht.';
   if(isRegular(p) && others.filter(isRegular).length>=MAX_REGULAR) return `Maximal ${MAX_REGULAR} Spieler mit regulärer Lizenz (Ausländer, deutsche Ü24, Torhüter Ü26) – übrige Plätze nur für deutsche U24-Förderspieler (Jg. ≥ ${U24_MIN}).`;
+  if(isOlder(p) && others.filter(isOlder).length>=MAX_OVER23) return `Maximal ${MAX_OVER23} Feldspieler über 23 im Spielbericht – weitere Plätze nur mit U24-Spielern (Jg. ≥ ${U24_MIN}).`;
   return null;
 }
 function place(pid, slotId){
@@ -300,6 +303,8 @@ function stats(){
   ps.filter(p=>injured.has(p.id)).forEach(p=>errs.push(`${p.name} ist verletzt und nicht einsetzbar.`));
   if(sk<17) hints.push(`Nur ${sk} Feldspieler (regulär 17 + 2 U21-Plätze).`);
   if(missing>0) errs.push(`Es ${missing===2?'fehlen zwei':'fehlt ein'} deutsche${missing===2?'':'r'} U21-Spieler im Spielbericht, obwohl ${availAll} nicht verletzte deutsche U21-Spieler verfügbar sind (beliebige Position, z. B. Platz 18/19).`);
+  const older=ps.filter(isOlder).length;
+  if(older>MAX_OVER23) errs.push(`Zu viele Feldspieler über 23 (${older}/${MAX_OVER23}) – mindestens ${sk-MAX_OVER23} Feldspieler müssen U24 sein.`);
   const regular=ps.filter(isRegular).length, youngN=ps.length-regular;
   if(regular>MAX_REGULAR) errs.push(`Zu viele Spieler mit regulärer Lizenz (${regular}/${MAX_REGULAR}) – alle weiteren Spieler müssen deutsche U24-Förderspieler sein (Torhüter: U26).`);
   const freeSpots=Math.max(0,19-sk), availYoung=roster.filter(p=>p.pos!=='G'&&isYoung(p)&&!injured.has(p.id)&&!placed.has(p.id)).length;
@@ -307,7 +312,7 @@ function stats(){
   const okk=!errs.length;
   $('#valid').className='valid '+(okk?'ok':'bad');
   $('#valid').innerHTML=`<span class="ic">${okk?'✔':'✖'}</span><div><b>Kader ${okk?'zulässig':'unzulässig'}</b><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}${hints.map(e=>`<li class="hint">${esc(e)}</li>`).join('')}</ul></div>`;
-  $('#stats').innerHTML=pill(`Torhüter ${g}/2`,g==2?'ok':'warn')+pill(`Feldspieler ${sk}/19`,sk>=17?'ok':'warn',sk<17?'Mindestens 17 reguläre Plätze – weniger Feldspieler sind erlaubt, aber ungewöhnlich.':'')+pill(`Reguläre Lizenzen ${regular}/${MAX_REGULAR}`,regular<=MAX_REGULAR?'ok':'bad','Ausländer, deutsche Ü24-Feldspieler und deutsche Ü26-Torhüter; max. 15')+pill(`Förderspieler (U24/U26-TW) ${youngN}`,'ok','Deutsche Feldspieler Jg. ≥ '+U24_MIN+', deutsche Torhüter Jg. ≥ '+U26G_MIN)+pill(`Importspieler ${imp}/${MAX_IMPORT}`,imp<=MAX_IMPORT?'ok':'bad')+uPill;
+  $('#stats').innerHTML=pill(`Torhüter ${g}/2`,g==2?'ok':'warn')+pill(`Feldspieler ${sk}/19`,sk>=17?'ok':'warn',sk<17?'Mindestens 17 reguläre Plätze – weniger Feldspieler sind erlaubt, aber ungewöhnlich.':'')+pill(`Reguläre Lizenzen ${regular}/${MAX_REGULAR}`,regular<=MAX_REGULAR?'ok':'bad','Ausländer, deutsche Ü24-Feldspieler und deutsche Ü26-Torhüter; max. 15')+pill(`Förderspieler (U24/U26-TW) ${youngN}`,'ok','Deutsche Feldspieler Jg. ≥ '+U24_MIN+', deutsche Torhüter Jg. ≥ '+U26G_MIN)+pill(`Feldspieler über 23: ${older}/${MAX_OVER23}`,older<=MAX_OVER23?'ok':'bad','Höchstens 16 Feldspieler älter als 23 (U24 = Jg. ≥ '+U24_MIN+'); U24-Spieler müssen nicht eingesetzt werden')+pill(`Importspieler ${imp}/${MAX_IMPORT}`,imp<=MAX_IMPORT?'ok':'bad')+uPill;
 }
 
 // Events
