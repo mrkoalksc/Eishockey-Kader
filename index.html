@@ -308,7 +308,7 @@ function stats(){
   const regular=ps.filter(isRegular).length, youngN=ps.length-regular;
   if(regular>MAX_REGULAR) errs.push(`Zu viele Spieler mit regulärer Lizenz (${regular}/${MAX_REGULAR}) – alle weiteren Spieler müssen deutsche U24-Förderspieler sein (Torhüter: U26).`);
   const freeSpots=Math.max(0,19-sk), availYoung=roster.filter(p=>p.pos!=='G'&&isYoung(p)&&!injured.has(p.id)&&!placed.has(p.id)).length;
-  if(freeSpots>0&&availYoung>0&&sk>=15) errs.push(`Es sind noch ${Math.min(freeSpots,availYoung)} Feldspielerplätze frei, obwohl ${availYoung} deutsche U24-Förderspieler verfügbar sind – die übrigen Plätze müssen mit diesen Förderspielern besetzt werden.`);
+  if(freeSpots>0&&availYoung>0&&sk>=15) hints.push(`Es sind noch ${Math.min(freeSpots,availYoung)} Feldspielerplätze frei, obwohl ${availYoung} deutsche U24-Förderspieler verfügbar sind – sie müssen aber nicht eingesetzt werden.`);
   const okk=!errs.length;
   $('#valid').className='valid '+(okk?'ok':'bad');
   $('#valid').innerHTML=`<span class="ic">${okk?'✔':'✖'}</span><div><b>Kader ${okk?'zulässig':'unzulässig'}</b><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}${hints.map(e=>`<li class="hint">${esc(e)}</li>`).join('')}</ul></div>`;
